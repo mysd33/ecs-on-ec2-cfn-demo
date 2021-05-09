@@ -18,13 +18,13 @@ Parameters:
 #Conditions: 
 
 Resources: 
-  #Security Groups for Public ALB
-  PublicLoadBalancerSecurityGroup:
+  #Security Group of Public ALB for BFF
+  PublicALBSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: Access to the public facing load balancer
       VpcId:
-        Fn::ImportValue: !Sub ${StackPrefix}-VPCId
+        Fn::ImportValue: !Sub ${StackPrefix}-VPC-ID
       SecurityGroupIngress:
         # Allow access to ALB from anywhere on the internet
         - CidrIp: !Ref TerminalCidrIP
@@ -39,5 +39,84 @@ Resources:
           Description: Ingress from the terminal machine
       Tags:
         - Key: Name
-          Value: 
-#Outputs:
+          Value: !Sub ${StackPrefix}-PubALB-SG
+  #Security Group of Private ALB for Backend
+  PrivateALBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Access to the private load balancer
+      VpcId:
+        Fn::ImportValue: !Sub ${StackPrefix}-VPC-ID
+      SecurityGroupIngress:        
+        - CidrIp:
+            Fn::ImportValue: !Sub ${StackPrefix}-VPC-CIDR
+          IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          Description: Ingress from VPC
+        - CidrIp:
+            Fn::ImportValue: !Sub ${StackPrefix}-VPC-CIDR
+          IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          Description: Ingress from VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${StackPrefix}-PrivALB-SG          
+  
+  #Security Group of Public ECS Cluster for BFF
+  PublicECSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Access only from public ALB
+      VpcId:
+        Fn::ImportValue: !Sub ${StackPrefix}-VPC-ID
+      SecurityGroupIngress:        
+        - SourceSecurityGroupId: !Ref PublicALBSecurityGroup
+          IpProtocol: tcp
+          FromPort: 32768
+          ToPort: 61000
+          Description: Ingress from the public ALB for dynamic port mapping
+      Tags:
+        - Key: Name
+          Value: !Sub ${StackPrefix}-PubECS-SG  
+  
+  #Security Group of Private ECS Cluster for Backend
+  PrivateECSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Access only from private ALB
+      VpcId:
+        Fn::ImportValue: !Sub ${StackPrefix}-VPC-ID
+      SecurityGroupIngress:        
+        - SourceSecurityGroupId: !Ref PrivateALBSecurityGroup
+          IpProtocol: tcp
+          FromPort: 32768
+          ToPort: 61000
+          Description: Ingress from the private ALB for dynamic port mapping
+      Tags:
+        - Key: Name
+          Value: !Sub ${StackPrefix}-PrivECS-SG  
+
+
+Outputs:
+  PublicALBSecurityGroupID:
+    Description: PublicALBSecurityGroup ID
+    Value:  !Ref PublicALBSecurityGroup
+    Export: 
+      Name: !Sub ${StackPrefix}-PublicALBSecurityGroup-ID
+  PrivateALBSecurityGroupID:
+    Description: PrivateALBSecurityGroup ID
+    Value:  !Ref PrivateALBSecurityGroup
+    Export: 
+      Name: !Sub ${StackPrefix}-PrivateALBSecurityGroup-ID
+  PublicECSSecurityGroupID:
+    Description: PublicECSSecurityGroup ID
+    Value:  !Ref PublicECSSecurityGroup
+    Export: 
+      Name: !Sub ${StackPrefix}-PublicECSSecurityGroup-ID
+  PrivateECSSecurityGroupID:
+    Description: PrivateECSSecurityGroup ID
+    Value:  !Ref PrivateECSSecurityGroup
+    Export: 
+      Name: !Sub ${StackPrefix}-PrivateECSSecurityGroup-ID

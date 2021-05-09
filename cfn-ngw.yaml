@@ -37,7 +37,7 @@ Resources:
     Type: AWS::EC2::RouteTable
     Properties:
       VpcId:
-        Fn::ImportValue: !Sub ${StackPrefix}-VPCId
+        Fn::ImportValue: !Sub ${StackPrefix}-VPC-ID
       Tags:
         - Key: Name
           Value: !Sub ${StackPrefix}-PrivRT

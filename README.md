@@ -13,13 +13,18 @@ aws cloudformation update-stack --stack-name ECS-NATGW-Stack --template-body fil
 ```
 
 ## 3. Security Groupの作成
-## 4. ALBの作成
+```sh
+aws cloudformation validate-template --template-body file://cfn-sg.yaml
+aws cloudformation create-stack --stack-name ECS-SG-Stack --template-body file://cfn-sg.yaml
+aws cloudformation update-stack --stack-name ECS-SG-Stack --template-body file://cfn-sg.yaml
+```
+## 4. IAMの作成
+## 5. ALBの作成
 
 
 
 
-
-## 文法メモ
+## CloudFormationコマンド文法メモ
 aws cloudformation create-stack --stack-name myteststack --enable-termination-protection --template-body file://cfn-ec2.yaml
 aws cloudformation create-stack --stack-name myteststack --template-body file://cfn-ec2.yaml
 aws cloudformation update-stack --stack-name myteststack --template-body file://cfn-vpc.yaml

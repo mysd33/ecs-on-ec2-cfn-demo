@@ -139,7 +139,12 @@ Outputs:
     Description: VPC ID
     Value: !Ref VPC
     Export:  
-      Name: !Sub ${StackPrefix}-VPCId
+      Name: !Sub ${StackPrefix}-VPC-ID
+  VPCCIDR:
+    Description: VPC CIDR
+    Value: !GetAtt VPC.CidrBlock
+    Export:  
+      Name: !Sub ${StackPrefix}-VPC-CIDR
   PublicSubnetOneId:
     Description: Public subnet one ID
     Value: !Ref PublicSubnetOne
