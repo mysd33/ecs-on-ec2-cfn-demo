@@ -1,0 +1,124 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: VPC Template for CloudFormation Demo
+#Metadata:
+
+Parameters:
+  # If you need more enviroment type then you can customize these allowed values
+  EnvironmentType:
+    Description: The environment type
+    Type: String
+    Default: test
+    AllowedValues:
+      - test
+      - prod
+    ConstraintDescription: must be a prod or test
+  # Terminal Machine IP (https://checkip.amazonaws.com/)
+  TerminalCidrIP:
+    Description: CidrIP for terminal machine to Connect to AWS Service
+    Type: String
+    Default: 60.112.119.125/32
+Mappings:
+  # VPC/Subnet Cidr Block for Environment Type
+  # If you need more IP addresses then you can customize these ranges
+  CidrConfig:
+    test:
+      VPC: 10.0.0.0/16
+      PublicOne: 10.0.0.0/24
+      PublicTwo: 10.0.1.0/24
+      PrivateOne: 10.0.2.0/24
+      PrivateTwo: 10.0.3.0/24
+    prod:
+      VPC: 10.1.0.0/16
+      PublicOne: 10.1.0.0/24
+      PublicTwo: 10.1.1.0/24
+      PrivateOne: 10.1.2.0/24
+      PrivateTwo: 10.1.3.0/24
+
+#Conditions:
+
+Resources:
+  #VPC
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !FindInMap [CidrConfig, !Ref EnvironmentType, VPC]
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: !Join ["-", [!Ref "AWS::StackName", "VPC"]]
+  #Public Subnets  
+  PublicSubnetOne:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select
+        - 0
+        - Fn::GetAZs: !Ref AWS::Region
+      VpcId: !Ref VPC
+      CidrBlock: !FindInMap [CidrConfig, !Ref EnvironmentType, PublicOne]
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Join ["-", [!Ref "AWS::StackName", "PubSubnet1"]]
+  PublicSubnetTwo:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select
+        - 1
+        - Fn::GetAZs: !Ref AWS::Region
+      VpcId: !Ref VPC
+      CidrBlock: !FindInMap [CidrConfig, !Ref EnvironmentType, PublicTwo]
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Join ["-", [!Ref "AWS::StackName", "PubSubnet2"]]          
+  #Private Subnets
+  PrivateSubnetOne:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select
+        - 0
+        - Fn::GetAZs: !Ref AWS::Region
+      VpcId: !Ref VPC
+      CidrBlock: !FindInMap [CidrConfig, !Ref EnvironmentType, PrivateOne]
+      Tags:
+        - Key: Name
+          Value: !Join ["-", [!Ref "AWS::StackName", "PrivSubnet1"]]   
+  PrivateSubnetTwo:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select
+        - 1
+        - Fn::GetAZs: !Ref AWS::Region
+      VpcId: !Ref VPC
+      CidrBlock: !FindInMap [CidrConfig, !Ref EnvironmentType, PrivateTwo]
+      Tags:
+        - Key: Name
+          Value: !Join ["-", [!Ref "AWS::StackName", "PrivSubnet2"]] 
+Outputs:
+  VPCId:
+    Description: VPC ID
+    Value: !Ref VPC
+    Export:
+      #StackName:VPCId
+      Name: !Join [":", [!Ref "AWS::StackName", "VPCId"]]
+  PublicSubnetOneId:
+    Description: Public subnet one ID
+    Value: !Ref PublicSubnetOne
+    Export:
+      Name: !Join [":", [!Ref "AWS::StackName", "PublicSubnetOneId"]]
+  PublicSubnetTwoId:
+    Description: Public subnet two ID
+    Value: !Ref PublicSubnetTwo
+    Export:
+      Name: !Join [":", [!Ref "AWS::StackName", "PublicSubnetTwoId"]]
+  PrivateSubnetOneId:
+    Description: Private subnet one ID
+    Value: !Ref PrivateSubnetOne
+    Export:
+      Name: !Join [":", [!Ref "AWS::StackName", "PrivateSubnetOneId"]]
+  PrivateSubnetTwoId:
+    Description: Private subnet two ID
+    Value: !Ref PrivateSubnetTwo
+    Export:
+      Name: !Join [":", [!Ref "AWS::StackName", "PrivateSubnetTwoId"]]
