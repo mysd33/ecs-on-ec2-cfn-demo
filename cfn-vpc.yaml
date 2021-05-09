@@ -3,6 +3,10 @@ Description: VPC Template for CloudFormation Demo
 #Metadata:
 
 Parameters:
+  StackPrefix:
+    Description: Stack Resource Name Prefix
+    Type: String
+    Default: Demo    
   # If you need more enviroment type then you can customize these allowed values
   EnvironmentType:
     Description: The environment type
@@ -12,11 +16,6 @@ Parameters:
       - test
       - prod
     ConstraintDescription: must be a prod or test
-  # Terminal Machine IP (https://checkip.amazonaws.com/)
-  TerminalCidrIP:
-    Description: CidrIP for terminal machine to Connect to AWS Service
-    Type: String
-    Default: 60.112.119.125/32
 Mappings:
   # VPC/Subnet Cidr Block for Environment Type
   # If you need more IP addresses then you can customize these ranges
@@ -46,7 +45,7 @@ Resources:
       EnableDnsHostnames: true
       Tags:
         - Key: Name
-          Value: !Join ["-", [!Ref "AWS::StackName", "VPC"]]
+          Value: !Sub ${StackPrefix}-VPC
   #Public Subnets  
   PublicSubnetOne:
     Type: AWS::EC2::Subnet
@@ -59,7 +58,7 @@ Resources:
       MapPublicIpOnLaunch: true
       Tags:
         - Key: Name
-          Value: !Join ["-", [!Ref "AWS::StackName", "PubSubnet1"]]
+          Value: !Sub ${StackPrefix}-PubSubnet1
   PublicSubnetTwo:
     Type: AWS::EC2::Subnet
     Properties:
@@ -71,7 +70,7 @@ Resources:
       MapPublicIpOnLaunch: true
       Tags:
         - Key: Name
-          Value: !Join ["-", [!Ref "AWS::StackName", "PubSubnet2"]]          
+          Value: !Sub ${StackPrefix}-PubSubnet2          
   #Private Subnets
   PrivateSubnetOne:
     Type: AWS::EC2::Subnet
@@ -83,7 +82,7 @@ Resources:
       CidrBlock: !FindInMap [CidrConfig, !Ref EnvironmentType, PrivateOne]
       Tags:
         - Key: Name
-          Value: !Join ["-", [!Ref "AWS::StackName", "PrivSubnet1"]]   
+          Value: !Sub ${StackPrefix}-PrivSubnet1          
   PrivateSubnetTwo:
     Type: AWS::EC2::Subnet
     Properties:
@@ -94,7 +93,7 @@ Resources:
       CidrBlock: !FindInMap [CidrConfig, !Ref EnvironmentType, PrivateTwo]
       Tags:
         - Key: Name
-          Value: !Join ["-", [!Ref "AWS::StackName", "PrivSubnet2"]] 
+          Value: !Sub ${StackPrefix}-PrivSubnet2          
 
   #Internet Gateway
   InternetGateway:
@@ -102,7 +101,7 @@ Resources:
     Properties:
       Tags:
         - Key: Name
-          Value: !Join ["-", [!Ref "AWS::StackName", "IGW"]]
+          Value: !Sub ${StackPrefix}-IGW
   GatewayAttachement:
     Type: AWS::EC2::VPCGatewayAttachment
     Properties:
@@ -116,7 +115,7 @@ Resources:
       VpcId: !Ref VPC
       Tags:
         - Key: Name
-          Value: !Join ["-", [!Ref "AWS::StackName", "PubRT"]]
+          Value: !Sub ${StackPrefix}-PubRT          
   PublicRoute:
     Type: AWS::EC2::Route
     DependsOn: GatewayAttachement
@@ -140,24 +139,24 @@ Outputs:
     Description: VPC ID
     Value: !Ref VPC
     Export:  
-      Name: !Join [":", [!Ref "AWS::StackName", "VPCId"]]
+      Name: !Sub ${StackPrefix}-VPCId
   PublicSubnetOneId:
     Description: Public subnet one ID
     Value: !Ref PublicSubnetOne
     Export:
-      Name: !Join [":", [!Ref "AWS::StackName", "PublicSubnetOneId"]]
+      Name: !Sub ${StackPrefix}-PublicSubnetOneId
   PublicSubnetTwoId:
     Description: Public subnet two ID
     Value: !Ref PublicSubnetTwo
     Export:
-      Name: !Join [":", [!Ref "AWS::StackName", "PublicSubnetTwoId"]]
+      Name: !Sub ${StackPrefix}-PublicSubnetTwoId
   PrivateSubnetOneId:
     Description: Private subnet one ID
     Value: !Ref PrivateSubnetOne
     Export:
-      Name: !Join [":", [!Ref "AWS::StackName", "PrivateSubnetOneId"]]
+      Name: !Sub ${StackPrefix}-PrivateSubnetOneId
   PrivateSubnetTwoId:
     Description: Private subnet two ID
     Value: !Ref PrivateSubnetTwo
     Export:
-      Name: !Join [":", [!Ref "AWS::StackName", "PrivateSubnetTwoId"]]
+      Name: !Sub ${StackPrefix}-PrivateSubnetTwoId

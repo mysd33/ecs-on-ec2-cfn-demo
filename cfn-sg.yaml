@@ -1,0 +1,43 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: SecurityGroup Template for CloudFormation Demo
+#Metadata: 
+
+Parameters: 
+  StackPrefix:
+    Description: Stack Resource Name Prefix
+    Type: String
+    Default: Demo 
+  # Terminal Machine IP (https://checkip.amazonaws.com/)
+  TerminalCidrIP:
+    Description: CidrIP for terminal machine to Connect to AWS Service
+    Type: String
+    Default: 60.112.119.125/32
+
+#Mappings: 
+
+#Conditions: 
+
+Resources: 
+  #Security Groups for Public ALB
+  PublicLoadBalancerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Access to the public facing load balancer
+      VpcId:
+        Fn::ImportValue: !Sub ${StackPrefix}-VPCId
+      SecurityGroupIngress:
+        # Allow access to ALB from anywhere on the internet
+        - CidrIp: !Ref TerminalCidrIP
+          IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          Description: Ingress from the terminal machine
+        - CidrIp: !Ref TerminalCidrIP
+          IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          Description: Ingress from the terminal machine
+      Tags:
+        - Key: Name
+          Value: 
+#Outputs:
