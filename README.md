@@ -1,11 +1,14 @@
-## 1. VPCの作成
+## 1. VPCおよびサブネット、InternetGateway等の作成
 ```sh
 aws cloudformation validate-template --template-body file://cfn-vpc.yaml
 aws cloudformation create-stack --stack-name ECSVPCStack --template-body file://cfn-vpc.yaml
 aws cloudformation update-stack --stack-name ECSVPCStack --template-body file://cfn-vpc.yaml
+```
 
+## 2. NAT Gatewayの作成とプライベートサブネットのルートテーブル更新
 
-
+## 3. Security Groupの作成
+## 4. ALBの作成
 
 
 
