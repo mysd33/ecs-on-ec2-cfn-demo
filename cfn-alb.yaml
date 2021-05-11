@@ -1,0 +1,109 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: ALB Template for CloudFormation Demo
+#Metadata: 
+
+Parameters: 
+  StackPrefix:
+    Description: Stack Resource Name Prefix
+    Type: String
+    Default: Demo 
+  
+  EnvironmentType:
+    Description: Which environments to deploy your service.
+    Type: String
+    AllowedValues: ["Dev", "Staging", "Production"]
+    Default: Dev
+
+  FrontendHealthCheckPath:
+    Description: Frontend WebApp health check path
+    Type: String
+    MinLength: 1
+    MaxLength: 255
+    AllowedPattern: ^[-¥.¥/a-zA-Z0-9]*$
+    Default: /backend-for-frontend/index.html
+    #Default: /backend-for-frontend/actuator/health
+
+  BackendHealthCheckPath:
+    Description: Backend Service Default health check path
+    Type: String
+    MinLength: 1
+    MaxLength: 255
+    AllowedPattern: ^[-¥.¥/a-zA-Z0-9]*$
+    Default: /backend/api/v1/users
+    #Default: /backend/actuator/health
+
+Mappings:
+  DeployEnvironmentMap:
+    Dev:
+      "Protocol": "HTTP"
+      "Port": 80
+    Staging:
+      "Protocol": "HTTP"
+      "Port": 80
+    Production:
+      "Protocol": "HTTPS"
+      "Port": 443
+
+#Conditions: 
+
+Resources: 
+  #Public ALB for BFF
+  PublicALB:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:      
+      Name: !Sub ${StackPrefix}-PublicALB     
+      Subnets: 
+        - Fn::ImportValue: !Sub ${StackPrefix}-PublicSubnetOneId
+        - Fn::ImportValue: !Sub ${StackPrefix}-PublicSubnetTwoId
+      SecurityGroups: 
+        - Fn::ImportValue: !Sub ${StackPrefix}-PublicALBSecurityGroup-ID      
+
+  PublicALBDefaultTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub ${StackPrefix}-PublicALB      
+      VpcId: 
+        Fn::ImportValue: !Sub ${StackPrefix}-VPC-ID
+      Port: !FindInMap [DeployEnvironmentMap, !Ref EnvironmentType, Port]
+      Protocol: !FindInMap [DeployEnvironmentMap, !Ref EnvironmentType, Protocol]
+      HealthCheckPath: !Ref FrontendHealthCheckPath      
+      HealthCheckIntervalSeconds: 60      
+      #HealthCheckTimeoutSeconds: 5
+      #HealthyThresholdCount: 5
+      #TargetGroupAttributes: 
+      #  - Key: deregistration_delay.timeout_seconds
+      #    Value: '60'
+  PublicALBListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties: 
+      LoadBalancerArn: !Ref PublicALB
+      Port: !FindInMap [DeployEnvironmentMap, !Ref EnvironmentType, Port]                    
+      Protocol: !FindInMap [DeployEnvironmentMap, !Ref EnvironmentType, Protocol]      
+      DefaultActions: 
+        - Type: forward
+          TargetGroupArn: !Ref PublicALBDefaultTargetGroup
+
+Outputs:
+  PublicALBARN:
+    Description: Public ALB ARN
+    Value: !Ref PublicALB
+    Export:      
+      Name: !Sub ${StackPrefix}-PubALB
+
+  PublicALBDNS:
+    Description: Public ALB DNS Name
+    Value: !GetAtt PublicALB.DNSName
+    Export:
+      Name: !Sub ${StackPrefix}-PubALB-DNS
+
+  PublicALBDefaultTargetGroup:
+    Description: Frontend TagetGroup Default
+    Value: !Ref PublicALBDefaultTargetGroup
+    Export:
+      Name: !Sub ${StackPrefix}-PubALB-DefaultTargetGroup
+
+  PublicALBListener:
+    Description: Public ALB Listener
+    Value: !Ref PublicALBListener
+    Export:
+      Name: !Sub ${StackPrefix}-PubALB-Listener

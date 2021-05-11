@@ -20,8 +20,17 @@ aws cloudformation update-stack --stack-name ECS-SG-Stack --template-body file:/
 ```
 ## 4. IAMの作成
 ## 5. ALBの作成
+```sh
+aws cloudformation validate-template --template-body file://cfn-alb.yaml
+aws cloudformation create-stack --stack-name ECS-ALB-Stack --template-body file://cfn-alb.yaml
+aws cloudformation update-stack --stack-name ECS-ALB-Stack --template-body file://cfn-alb.yaml
+```
+## 6. ECSクラスタの作成
 
+## 7. ECSタスク定義の作成
 
+## 8. ECSサービスの実行
+## 8. ECS用のTargetGroup、Listenerの作成
 
 
 ## CloudFormationコマンド文法メモ
