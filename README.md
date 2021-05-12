@@ -16,6 +16,11 @@ aws cloudformation validate-template --template-body file://cfn-sg.yaml
 aws cloudformation create-stack --stack-name ECS-SG-Stack --template-body file://cfn-sg.yaml
 ```
 ## 4. IAMの作成
+```sh
+aws cloudformation validate-template --template-body file://cfn-iam.yaml
+aws cloudformation create-stack --stack-name ECS-IAM-Stack --template-body file://cfn-iam.yaml --capabilities CAPABILITY_NAMED_IAM
+```
+
 ## 5. ALBの作成
 * ALB
 ```sh
@@ -30,7 +35,7 @@ aws cloudformation create-stack --stack-name ECS-TG-Stack --template-body file:/
 ## 6. ECSクラスタの作成
 ```sh
 aws cloudformation validate-template --template-body file://cfn-ecs-cluster.yaml
-aws cloudformation create-stack --stack-name ECS-CLUSTER-Stack --template-body file://cfn-ecs-cluster.yaml --capabilities CAPABILITY_NAMED_IAM
+aws cloudformation create-stack --stack-name ECS-CLUSTER-Stack --template-body file://cfn-ecs-cluster.yaml
 ```
 
 ## 7. ECSタスク定義の作成

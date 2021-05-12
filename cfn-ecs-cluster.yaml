@@ -55,27 +55,6 @@ Mappings:
 #Conditions:
 
 Resources:
-  # TODO: move to: cfn-iam.yaml
-  ECSRole:
-    Type: AWS::IAM::Role
-    Properties:
-      Path: /
-      AssumeRolePolicyDocument:
-        Statement:
-          - Action: sts:AssumeRole
-            Effect: Allow
-            Principal:
-              Service: ec2.amazonaws.com
-      ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role
-  # TODO: move to: cfn-iam.yaml
-  IamInstanceProfile:
-    Type: AWS::IAM::InstanceProfile
-    Properties:
-      Path: /
-      Roles:
-        - !Ref ECSRole
-
   #ECS Cluster for Frontend
   FrontendECSCluster:
     Type: AWS::ECS::Cluster
@@ -91,7 +70,8 @@ Resources:
       ImageId: !Ref ECSAMI
       InstanceType: !FindInMap [FrontendClusterDefinitionMap, !Ref EnvironmentType, InstanceType]
       #TODO:  ImportValue
-      IamInstanceProfile: !Ref IamInstanceProfile
+      IamInstanceProfile:
+        Fn::ImportValue: !Sub ${StackPrefix}-ECSIamInstanceProfile-ID
       KeyName: !FindInMap [FrontendClusterDefinitionMap, !Ref EnvironmentType, KeyPairName]
       SecurityGroups:      
         - Fn::ImportValue: !Sub ${StackPrefix}-PublicECSSecurityGroup-ID
