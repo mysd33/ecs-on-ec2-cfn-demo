@@ -1,0 +1,139 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: ECS Cluster Template for CloudFormation Demo. Depends on cfn-vpc.yaml, cfn-ngw.yaml, cfn-sg.yaml, cfn-iam.yaml
+
+#Metadata:
+
+Parameters:
+  StackPrefix:
+    Description: Stack Resource Name Prefix
+    Type: String
+    Default: Demo
+  ECSAMI:
+    Description: AMI ID
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ecs/optimized-ami/amazon-linux-2/recommended/image_id
+  EnvironmentType:
+    Description: The environment type
+    Type: String
+    AllowedValues: ["Dev", "Staging", "Production"]
+    Default: Dev
+    ConstraintDescription: must be a prod or test
+Mappings:
+  FrontendClusterDefinitionMap:
+    Production:
+      "InstanceType": "r4.large"
+      "DesiredCapacity": 1
+      "EC2InstanceMaxSizeOfECS": 3
+      "KeyPairName": "myKeyPair"
+    Staging:
+      "InstanceType": "r4.large"
+      "DesiredCapacity": 1
+      "EC2InstanceMaxSizeOfECS": 3
+      "KeyPairName": "myKeyPair"
+    Dev:
+      "InstanceType": "r4.large"
+      "DesiredCapacity": 1
+      "EC2InstanceMaxSizeOfECS": 3
+      "KeyPairName": "myKeyPair"
+  BackendClusterDefinitionMap:
+    Production:
+      "InstanceType": "r4.large"
+      "DesiredCapacity": 1
+      "EC2InstanceMaxSizeOfECS": 3
+      "KeyPairName": "myKeyPair"
+    Staging:
+      "InstanceType": "r4.large"
+      "DesiredCapacity": 1
+      "EC2InstanceMaxSizeOfECS": 3
+      "KeyPairName": "myKeyPair"
+    Dev:
+      "InstanceType": "r4.large"
+      "DesiredCapacity": 1
+      "EC2InstanceMaxSizeOfECS": 3
+      "KeyPairName": "myKeyPair"
+
+#Conditions:
+
+Resources:
+  # TODO: move to: cfn-iam.yaml
+  ECSRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Path: /
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role
+  # TODO: move to: cfn-iam.yaml
+  IamInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: /
+      Roles:
+        - !Ref ECSRole
+
+  #ECS Cluster for Frontend
+  FrontendECSCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: !Sub ${StackPrefix}-Frontend-Cluster
+      Tags:
+        - Key: Name
+          Value: !Sub ${StackPrefix}-Frontend-Cluster
+  #ECS AutoScalling LaunchConfiguration for Frontend
+  FrontendECSLaunchConfiguration:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Properties:
+      ImageId: !Ref ECSAMI
+      InstanceType: !FindInMap [FrontendClusterDefinitionMap, !Ref EnvironmentType, InstanceType]
+      #TODO:  ImportValue
+      IamInstanceProfile: !Ref IamInstanceProfile
+      KeyName: !FindInMap [FrontendClusterDefinitionMap, !Ref EnvironmentType, KeyPairName]
+      SecurityGroups:      
+        - Fn::ImportValue: !Sub ${StackPrefix}-PublicECSSecurityGroup-ID
+      AssociatePublicIpAddress: true
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash -xe
+          echo ECS_CLUSTER=${FrontendECSCluster} >> /etc/ecs/ecs.config
+          yum install -y aws-cfn-bootstrap
+          /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource FrontendECSAutoScalingGroup --region ${AWS::Region}          
+  #AutoScallingGroup for Frontend
+  FrontendECSAutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      VPCZoneIdentifier:
+        - Fn::ImportValue: !Sub ${StackPrefix}-PublicSubnetOneId
+        - Fn::ImportValue: !Sub ${StackPrefix}-PublicSubnetTwoId      
+      LaunchConfigurationName: !Ref FrontendECSLaunchConfiguration  
+      MinSize: '0'
+      MaxSize: !FindInMap [FrontendClusterDefinitionMap, !Ref EnvironmentType, EC2InstanceMaxSizeOfECS]
+      DesiredCapacity: !FindInMap [FrontendClusterDefinitionMap, !Ref EnvironmentType, DesiredCapacity]
+      Tags:
+        - Key: Name
+          Value: !Sub ${StackPrefix}-Frontend-ASG
+          PropagateAtLaunch: true
+                    
+  #ECS Cluster for Backend
+#  BackendECSCluster:
+#    Type: AWS::ECS::Cluster
+#    Properties:
+#      ClusterName: !Sub ${StackPrefix}-Backtend-Cluster
+#      Tags:
+#        - Key: Name
+#          Value: !Sub ${StackPrefix}-Backend-Cluster
+  #ECS AutoScalling LaunchConfiguration for Backend
+
+  #AutoScallingGroup for Backend
+
+
+Outputs:
+  FrontendECSCluster:
+    Description: Frontend ECS Cluster
+    Value: !Ref FrontendECSCluster
+    Export:
+      Name: !Sub ${StackPrefix}-Frontend-Cluster

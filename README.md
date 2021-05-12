@@ -2,21 +2,18 @@
 ```sh
 aws cloudformation validate-template --template-body file://cfn-vpc.yaml
 aws cloudformation create-stack --stack-name ECS-VPC-Stack --template-body file://cfn-vpc.yaml
-aws cloudformation update-stack --stack-name ECS-VPC-Stack --template-body file://cfn-vpc.yaml
 ```
 
 ## 2. NAT Gatewayの作成とプライベートサブネットのルートテーブル更新
 ```sh
 aws cloudformation validate-template --template-body file://cfn-ngw.yaml
 aws cloudformation create-stack --stack-name ECS-NATGW-Stack --template-body file://cfn-ngw.yaml
-aws cloudformation update-stack --stack-name ECS-NATGW-Stack --template-body file://cfn-ngw.yaml
 ```
 
 ## 3. Security Groupの作成
 ```sh
 aws cloudformation validate-template --template-body file://cfn-sg.yaml
 aws cloudformation create-stack --stack-name ECS-SG-Stack --template-body file://cfn-sg.yaml
-aws cloudformation update-stack --stack-name ECS-SG-Stack --template-body file://cfn-sg.yaml
 ```
 ## 4. IAMの作成
 ## 5. ALBの作成
@@ -24,15 +21,17 @@ aws cloudformation update-stack --stack-name ECS-SG-Stack --template-body file:/
 ```sh
 aws cloudformation validate-template --template-body file://cfn-alb.yaml
 aws cloudformation create-stack --stack-name ECS-ALB-Stack --template-body file://cfn-alb.yaml
-aws cloudformation update-stack --stack-name ECS-ALB-Stack --template-body file://cfn-alb.yaml
 ```
 * Target Group
 ```sh
 aws cloudformation validate-template --template-body file://cfn-tg.yaml
 aws cloudformation create-stack --stack-name ECS-TG-Stack --template-body file://cfn-tg.yaml
-aws cloudformation update-stack --stack-name ECS-TG-Stack --template-body file://cfn-tg.yaml
 ```
 ## 6. ECSクラスタの作成
+```sh
+aws cloudformation validate-template --template-body file://cfn-ecs-cluster.yaml
+aws cloudformation create-stack --stack-name ECS-CLUSTER-Stack --template-body file://cfn-ecs-cluster.yaml --capabilities CAPABILITY_NAMED_IAM
+```
 
 ## 7. ECSタスク定義の作成
 
