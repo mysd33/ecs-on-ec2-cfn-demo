@@ -1,0 +1,115 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: ALB TargetGroup Template for CloudFormation Demo. Depends On cfn-vpc.yaml, cfn-alb.yaml.
+
+Mappings:
+  TargetGroupDefinitionMap:
+    FrontendWebApp:
+      "PathPattern": "/backend-for-frontend/*"
+      "HealthCheckPath": "/backend-for-frontend/index.html"
+#     "HealthCheckPath": "/backend-for-frontend/actuator/health"
+      "Priority": 1
+    BackendService:
+      "PathPattern": "/backend/*"
+      "HealthCheckPath": "/backend/api/v1/users"
+#     "HealthCheckPath": "/backend/actuator/health"
+      "Priority": 1
+#   BackendSampleService:
+#     "PathPattern": "/backend/api/v1/sample*"
+#     "HealthCheckPath": "/backend/api/v1/healthcheck"
+#     "Priority": 2
+  DeployEnvironmentMap:
+    Production:
+      "Protocol": "HTTPS"
+      "Port": 443
+    Staging:
+      "Protocol": "HTTP"
+      "Port": 80
+    Dev:
+      "Protocol": "HTTP"
+      "Port": 80
+
+Parameters:
+  StackPrefix:
+    Description: Stack Resource Name Prefix
+    Type: String
+    Default: Demo
+  EnvType:
+    Description: Which environments to deploy your service.
+    Type: String
+    AllowedValues: ["Dev", "Staging", "Production"]
+    Default: Dev
+
+Resources:
+  #Frontend Web App Target Group
+  FrontendTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub ${StackPrefix}-Frontend-TargetGroup
+      VpcId:
+        Fn::ImportValue: !Sub ${StackPrefix}-VPC-ID
+      Port: !FindInMap [DeployEnvironmentMap, !Ref EnvType, Port]
+      Protocol: !FindInMap [DeployEnvironmentMap, !Ref EnvType, Protocol]
+      HealthCheckPath: !FindInMap [TargetGroupDefinitionMap, FrontendWebApp, HealthCheckPath]
+      HealthCheckIntervalSeconds: 60
+      HealthyThresholdCount: 2
+      TargetGroupAttributes:
+        - Key: deregistration_delay.timeout_seconds
+          Value: '60'
+
+  FrontendListenerRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      Actions:
+        - Type: forward
+          TargetGroupArn: !Ref FrontendTargetGroup
+      Conditions:
+        - Field: path-pattern
+          PathPatternConfig:
+            Values:
+              - !FindInMap [TargetGroupDefinitionMap, FrontendWebApp, PathPattern]
+      ListenerArn:
+        Fn::ImportValue: !Sub ${StackPrefix}-PubALB-Listener
+      Priority: !FindInMap [TargetGroupDefinitionMap, FrontendWebApp, Priority]
+
+  #Backend Service Target Group
+  BackendTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub ${StackPrefix}-Backend-TargetGroup
+      VpcId:
+        Fn::ImportValue: !Sub ${StackPrefix}-VPC-ID
+      Port: !FindInMap [DeployEnvironmentMap, !Ref EnvType, Port]
+      Protocol: !FindInMap [DeployEnvironmentMap, !Ref EnvType, Protocol]
+      HealthCheckPath: !FindInMap [TargetGroupDefinitionMap, FrontendWebApp, HealthCheckPath]
+      HealthCheckIntervalSeconds: 60
+      HealthyThresholdCount: 2
+      TargetGroupAttributes:
+        - Key: deregistration_delay.timeout_seconds
+          Value: '60'
+
+  BackendListenerRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      Actions:
+        - Type: forward
+          TargetGroupArn: !Ref BackendTargetGroup
+      Conditions:
+        - Field: path-pattern
+          PathPatternConfig:
+            Values:
+              - !FindInMap [TargetGroupDefinitionMap, BackendService, PathPattern]
+      ListenerArn:
+        Fn::ImportValue: !Sub ${StackPrefix}-PrivALB-Listener
+      Priority: !FindInMap [TargetGroupDefinitionMap, BackendService, Priority]
+
+Outputs:
+  FrontendTargetGroup:
+    Description: Frontend TargetGroup Service
+    Value: !Ref FrontendTargetGroup
+    Export:
+      Name: !Sub ${StackPrefix}-Frontend-TargetGroup
+  BackendTargetGroup:
+    Description: Backend TargetGroup Service
+    Value: !Ref BackendTargetGroup
+    Export:
+      Name: !Sub ${StackPrefix}-Backend-TargetGroup

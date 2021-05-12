@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: NATGateway Template for CloudFormation Demo
+Description: NATGateway Template for CloudFormation Demo. Depends on cfn-vpc.yaml.
 #Metadata:
 
 Parameters:

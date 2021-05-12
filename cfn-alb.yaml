@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: ALB Template for CloudFormation Demo
+Description: ALB Template for CloudFormation Demo. Depends on cfn-vpc.yaml, cfn-sg.yaml
 #Metadata: 
 
 Parameters: 
@@ -61,7 +61,7 @@ Resources:
   PublicALBDefaultTargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
-      Name: !Sub ${StackPrefix}-PublicALB      
+      Name: !Sub ${StackPrefix}-PublicALB-DfTargetGroup
       VpcId: 
         Fn::ImportValue: !Sub ${StackPrefix}-VPC-ID
       Port: !FindInMap [DeployEnvironmentMap, !Ref EnvironmentType, Port]
@@ -83,6 +83,41 @@ Resources:
         - Type: forward
           TargetGroupArn: !Ref PublicALBDefaultTargetGroup
 
+  #Privte ALB for Backend     
+  PrivateALB:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:      
+      Name: !Sub ${StackPrefix}-PrivateALB     
+      Subnets: 
+        - Fn::ImportValue: !Sub ${StackPrefix}-PrivateSubnetOneId
+        - Fn::ImportValue: !Sub ${StackPrefix}-PrivateSubnetTwoId
+      SecurityGroups: 
+        - Fn::ImportValue: !Sub ${StackPrefix}-PrivateALBSecurityGroup-ID      
+
+  PrivateALBDefaultTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub ${StackPrefix}-PrivateALB-DfTargetGroup
+      VpcId: 
+        Fn::ImportValue: !Sub ${StackPrefix}-VPC-ID
+      Port: !FindInMap [DeployEnvironmentMap, !Ref EnvironmentType, Port]
+      Protocol: !FindInMap [DeployEnvironmentMap, !Ref EnvironmentType, Protocol]
+      HealthCheckPath: !Ref BackendHealthCheckPath
+      HealthCheckIntervalSeconds: 60      
+      #HealthCheckTimeoutSeconds: 5
+      #HealthyThresholdCount: 5
+      #TargetGroupAttributes: 
+      #  - Key: deregistration_delay.timeout_seconds
+      #    Value: '60'
+  PrivateALBListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties: 
+      LoadBalancerArn: !Ref PrivateALB
+      Port: !FindInMap [DeployEnvironmentMap, !Ref EnvironmentType, Port]                    
+      Protocol: !FindInMap [DeployEnvironmentMap, !Ref EnvironmentType, Protocol]      
+      DefaultActions: 
+        - Type: forward
+          TargetGroupArn: !Ref PrivateALBDefaultTargetGroup 
 Outputs:
   PublicALBARN:
     Description: Public ALB ARN
@@ -97,13 +132,37 @@ Outputs:
       Name: !Sub ${StackPrefix}-PubALB-DNS
 
   PublicALBDefaultTargetGroup:
-    Description: Frontend TagetGroup Default
+    Description: Public ALB TagetGroup Default
     Value: !Ref PublicALBDefaultTargetGroup
     Export:
       Name: !Sub ${StackPrefix}-PubALB-DefaultTargetGroup
 
   PublicALBListener:
-    Description: Public ALB Listener
+    Description: Public ALB Listener ARN
     Value: !Ref PublicALBListener
     Export:
       Name: !Sub ${StackPrefix}-PubALB-Listener
+
+  PrivateALBARN:
+    Description: Private ALB ARN
+    Value: !Ref PrivateALB
+    Export:      
+      Name: !Sub ${StackPrefix}-PrivALB
+
+  PrivateALBDNS:
+    Description: Private ALB DNS Name
+    Value: !GetAtt PrivateALB.DNSName
+    Export:
+      Name: !Sub ${StackPrefix}-PrivALB-DNS
+
+  PrivateALBDefaultTargetGroup:
+    Description: Private ALB TagetGroup Default
+    Value: !Ref PrivateALBDefaultTargetGroup
+    Export:
+      Name: !Sub ${StackPrefix}-PrivALB-DefaultTargetGroup
+
+  PrivateALBListener:
+    Description: Private ALB Listener ARN
+    Value: !Ref PrivateALBListener
+    Export:
+      Name: !Sub ${StackPrefix}-PrivALB-Listener
