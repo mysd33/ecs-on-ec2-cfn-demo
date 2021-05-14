@@ -63,25 +63,6 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub ${StackPrefix}-Frontend-Cluster
-  #ECS AutoScalling LaunchConfiguration for Frontend
-  FrontendECSLaunchConfiguration:
-    Type: AWS::AutoScaling::LaunchConfiguration
-    Properties:
-      ImageId: !Ref ECSAMI
-      InstanceType: !FindInMap [FrontendClusterDefinitionMap, !Ref EnvironmentType, InstanceType]
-      #TODO:  ImportValue
-      IamInstanceProfile:
-        Fn::ImportValue: !Sub ${StackPrefix}-ECSIamInstanceProfile-ID
-      KeyName: !FindInMap [FrontendClusterDefinitionMap, !Ref EnvironmentType, KeyPairName]
-      SecurityGroups:      
-        - Fn::ImportValue: !Sub ${StackPrefix}-PublicECSSecurityGroup-ID
-      AssociatePublicIpAddress: true
-      UserData:
-        Fn::Base64: !Sub |
-          #!/bin/bash -xe
-          echo ECS_CLUSTER=${FrontendECSCluster} >> /etc/ecs/ecs.config
-          yum install -y aws-cfn-bootstrap
-          /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource FrontendECSAutoScalingGroup --region ${AWS::Region}          
   #AutoScallingGroup for Frontend
   FrontendECSAutoScalingGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
@@ -97,19 +78,80 @@ Resources:
         - Key: Name
           Value: !Sub ${StackPrefix}-Frontend-ASG
           PropagateAtLaunch: true
+    CreationPolicy:
+      ResourceSignal:
+        Timeout: PT5M
+    UpdatePolicy:
+      AutoScalingReplacingUpdate:
+        WillReplace: true          
+
+  #ECS AutoScalling LaunchConfiguration for Frontend
+  FrontendECSLaunchConfiguration:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Properties:
+      ImageId: !Ref ECSAMI
+      InstanceType: !FindInMap [FrontendClusterDefinitionMap, !Ref EnvironmentType, InstanceType]      
+      IamInstanceProfile:
+        Fn::ImportValue: !Sub ${StackPrefix}-ECSIamInstanceProfile-ID
+      KeyName: !FindInMap [FrontendClusterDefinitionMap, !Ref EnvironmentType, KeyPairName]
+      SecurityGroups:      
+        - Fn::ImportValue: !Sub ${StackPrefix}-PublicECSSecurityGroup-ID
+      AssociatePublicIpAddress: true
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash -xe
+          echo ECS_CLUSTER=${FrontendECSCluster} >> /etc/ecs/ecs.config
+          yum install -y aws-cfn-bootstrap
+          /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource FrontendECSAutoScalingGroup --region ${AWS::Region}          
                     
   #ECS Cluster for Backend
-#  BackendECSCluster:
-#    Type: AWS::ECS::Cluster
-#    Properties:
-#      ClusterName: !Sub ${StackPrefix}-Backtend-Cluster
-#      Tags:
-#        - Key: Name
-#          Value: !Sub ${StackPrefix}-Backend-Cluster
+  BackendECSCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: !Sub ${StackPrefix}-Backtend-Cluster
+      Tags:
+        - Key: Name
+          Value: !Sub ${StackPrefix}-Backend-Cluster
   #ECS AutoScalling LaunchConfiguration for Backend
-
+  BackendECSAutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      VPCZoneIdentifier:
+        - Fn::ImportValue: !Sub ${StackPrefix}-PrivateSubnetOneId
+        - Fn::ImportValue: !Sub ${StackPrefix}-PrivateSubnetTwoId      
+      LaunchConfigurationName: !Ref BackendECSLaunchConfiguration  
+      MinSize: '0'
+      MaxSize: !FindInMap [BackendClusterDefinitionMap, !Ref EnvironmentType, EC2InstanceMaxSizeOfECS]
+      DesiredCapacity: !FindInMap [BackendClusterDefinitionMap, !Ref EnvironmentType, DesiredCapacity]
+      Tags:
+        - Key: Name
+          Value: !Sub ${StackPrefix}-Backend-ASG
+          PropagateAtLaunch: true
+    CreationPolicy:
+      ResourceSignal:
+        Timeout: PT5M
+    UpdatePolicy:
+      AutoScalingReplacingUpdate:
+        WillReplace: true    
   #AutoScallingGroup for Backend
-
+  BackendECSLaunchConfiguration:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Properties:
+      ImageId: !Ref ECSAMI
+      InstanceType: !FindInMap [BackendClusterDefinitionMap, !Ref EnvironmentType, InstanceType]
+      IamInstanceProfile:
+        Fn::ImportValue: !Sub ${StackPrefix}-ECSIamInstanceProfile-ID
+      KeyName: !FindInMap [BackendClusterDefinitionMap, !Ref EnvironmentType, KeyPairName]
+      SecurityGroups:      
+        - Fn::ImportValue: !Sub ${StackPrefix}-PrivateECSSecurityGroup-ID
+      AssociatePublicIpAddress: true
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash -xe
+          echo ECS_CLUSTER=${BackendECSCluster} >> /etc/ecs/ecs.config
+          yum install -y aws-cfn-bootstrap
+          /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource BackendECSAutoScalingGroup --region ${AWS::Region}          
+  
 
 Outputs:
   FrontendECSCluster:
@@ -117,3 +159,8 @@ Outputs:
     Value: !Ref FrontendECSCluster
     Export:
       Name: !Sub ${StackPrefix}-Frontend-Cluster
+  BackendECSCluster:
+    Description: Backend ECS Cluster
+    Value: !Ref BackendECSCluster
+    Export:
+      Name: !Sub ${StackPrefix}-Backend-Cluster
