@@ -34,9 +34,65 @@ Resources:
       Roles:
         - !Ref ECSRole
 
+  #IAM Role for Frontend ECS Task
+  FrontendECSTaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Path: /
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+
+  #IAM Role for Backend ECS Task
+  BackendECSTaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Path: /
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+
+  #IAM Role for ECS Execution  
+  ECSTaskExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Path: /
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+        - arn:aws:iam::aws:policy/AmazonSSMReadOnlyAccess
+        - arn:aws:iam::aws:policy/SecretsManagerReadWrite
+
+
 Outputs:
   ECSIamInstanceProfileID:
     Description: ECSIamInstanceProfile ID
     Value: !Ref ECSIamInstanceProfile
     Export: 
       Name: !Sub ${StackPrefix}-ECSIamInstanceProfile-ID
+  FrontendECSTaskRoleArn:
+    Description: FrontendECSTaskRole Arn
+    Value: !GetAtt FrontendECSTaskRole.Arn
+    Export: 
+      Name: !Sub ${StackPrefix}-FrontendECSTaskRole-Arn
+  BackendECSTaskRoleArn:
+    Description: BackendECSTaskRole Arn
+    Value: !GetAtt BackendECSTaskRole.Arn
+    Export: 
+      Name: !Sub ${StackPrefix}-BackendECSTaskRole-Arn      
+  ECSTaskExecutionRoleArn:
+    Description: ECSTaskExecutionRole Arn
+    Value: !GetAtt ECSTaskExecutionRole.Arn
+    Export: 
+      Name: !Sub ${StackPrefix}-ECSTaskExecutionRole-Arn 

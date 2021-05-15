@@ -1,0 +1,138 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: ECS Cluster Template for CloudFormation Demo. Depends on cfn-iam.yaml
+#Metadata: 
+
+Parameters: 
+  StackPrefix:
+    Description: Stack Resource Name Prefix
+    Type: String
+    Default: Demo
+  EnvironmentType:
+    Description: The environment type
+    Type: String
+    AllowedValues: ["Dev", "Staging", "Production"]
+    Default: Dev
+    ConstraintDescription: must be a prod or test
+
+Mappings: 
+  FrontendAppTaskDefinitionMap:
+    Production:
+      "Memory" : 1024
+      "Cpu" : 512
+      "ContainerName" : "ecsdemo-frontend-app"
+      "ContainerImage" : "523530166249.dkr.ecr.ap-northeast-1.amazonaws.com/mynavi-sample-ecs-bff:latest"
+      "ContainerPort" : 8080
+      "HostPort" : 0
+      "ContainerMemory" : 1024
+      "Profile" : "production"
+    Staging:
+      "Memory" : 1024
+      "Cpu" : 512
+      "ContainerName" : "ecsdemo-frontend-app"
+      "ContainerImage" : "523530166249.dkr.ecr.ap-northeast-1.amazonaws.com/mynavi-sample-ecs-bff:latest"
+      "ContainerPort" : 8080
+      "HostPort" : 0
+      "ContainerMemory" : 1024
+      "Profile" : "staging"
+    Dev:
+      "Memory" : 1024
+      "Cpu" : 512
+      "ContainerName" : "ecsdemo-frontend-app"
+      "ContainerImage" : "523530166249.dkr.ecr.ap-northeast-1.amazonaws.com/mynavi-sample-ecs-bff:latest"
+      "ContainerPort" : 8080
+      "HostPort" : 0
+      "ContainerMemory" : 1024
+      "Profile" : "dev"
+  BackendAppTaskDefinitionMap:
+    Production:
+      "Memory" : 1024
+      "Cpu" : 512
+      "ContainerName" : "ecsdemo-backend-service"
+      "ContainerImage" : "523530166249.dkr.ecr.ap-northeast-1.amazonaws.com/mynavi-sample-ecs-backend:latest"
+      "ContainerPort" : 8080
+      "HostPort" : 0
+      "ContainerMemory" : 1024
+      "Profile" : "production"
+    Staging:
+      "Memory" : 1024
+      "Cpu" : 512
+      "ContainerName" : "ecsdemo-backend-service"
+      "ContainerImage" : "523530166249.dkr.ecr.ap-northeast-1.amazonaws.com/mynavi-sample-ecs-backend:latest"
+      "ContainerPort" : 8080
+      "HostPort" : 0
+      "ContainerMemory" : 1024
+      "Profile" : "staging"
+    Dev:
+      "Memory" : 1024
+      "Cpu" : 512
+      "ContainerName" : "ecsdemo-backend-service"
+      "ContainerImage" : "523530166249.dkr.ecr.ap-northeast-1.amazonaws.com/mynavi-sample-ecs-backend:latest"
+      "ContainerPort" : 8080
+      "HostPort" : 0
+      "ContainerMemory" : 1024
+      "Profile" : "dev"
+
+#Conditions: 
+
+Resources:
+  #ECS Task Definition for Frontend Application
+  FrontendAppECSTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Sub ${StackPrefix}-ecstask-frontend-app
+      RequiresCompatibilities:
+        - EC2
+      Memory: !FindInMap [FrontendAppTaskDefinitionMap, !Ref EnvironmentType, Memory]
+      Cpu: !FindInMap [FrontendAppTaskDefinitionMap, !Ref EnvironmentType, Cpu]
+      #TODO: awsvpc networkmode (not dyanamic port mapping)
+      NetworkMode: bridge
+      ExecutionRoleArn:
+        Fn::ImportValue: !Sub ${StackPrefix}-ECSTaskExecutionRole-Arn
+      TaskRoleArn:
+        Fn::ImportValue: !Sub ${StackPrefix}-FrontendECSTaskRole-Arn
+      ContainerDefinitions:
+        - Name: !FindInMap [FrontendAppTaskDefinitionMap, !Ref EnvironmentType, ContainerName]
+          Image: !FindInMap [FrontendAppTaskDefinitionMap, !Ref EnvironmentType, ContainerImage]
+          PortMappings:
+            - ContainerPort: !FindInMap [FrontendAppTaskDefinitionMap, !Ref EnvironmentType, ContainerPort]
+              HostPort: !FindInMap [FrontendAppTaskDefinitionMap, !Ref EnvironmentType, HostPort]
+          Environment:
+            - Name: ENV_TYPE
+              Value: !FindInMap [FrontendAppTaskDefinitionMap, !Ref EnvironmentType, Profile]
+          Memory: !FindInMap [FrontendAppTaskDefinitionMap, !Ref EnvironmentType, ContainerMemory]
+  #ECS Task Definition for Backend Application
+  BackendAppECSTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Sub ${StackPrefix}-ecstask-backend-app
+      RequiresCompatibilities:
+        - EC2
+      Memory: !FindInMap [BackendAppTaskDefinitionMap, !Ref EnvironmentType, Memory]
+      Cpu: !FindInMap [BackendAppTaskDefinitionMap, !Ref EnvironmentType, Cpu]
+      #TODO: awsvpc networkmode (cannot dyanamic port mapping)
+      NetworkMode: bridge
+      ExecutionRoleArn:
+        Fn::ImportValue: !Sub ${StackPrefix}-ECSTaskExecutionRole-Arn
+      TaskRoleArn:
+        Fn::ImportValue: !Sub ${StackPrefix}-BackendECSTaskRole-Arn
+      ContainerDefinitions:
+        - Name: !FindInMap [BackendAppTaskDefinitionMap, !Ref EnvironmentType, ContainerName]
+          Image: !FindInMap [BackendAppTaskDefinitionMap, !Ref EnvironmentType, ContainerImage]
+          PortMappings:
+            - ContainerPort: !FindInMap [BackendAppTaskDefinitionMap, !Ref EnvironmentType, ContainerPort]
+              HostPort: !FindInMap [BackendAppTaskDefinitionMap, !Ref EnvironmentType, HostPort]
+          Environment:
+            - Name: ENV_TYPE
+              Value: !FindInMap [BackendAppTaskDefinitionMap, !Ref EnvironmentType, Profile]
+          Memory: !FindInMap [BackendAppTaskDefinitionMap, !Ref EnvironmentType, ContainerMemory]          
+Outputs:
+  FrontendAppECSTaskDefinition:
+    Description: Frontend ECS Task Definition
+    Value: !Ref FrontendAppECSTaskDefinition
+    Export:
+      Name: !Sub ${StackPrefix}-FrontendECS-TaskDefinition
+  BackendAppECSTaskDefinition:
+    Description: Backend ECS Task Definition
+    Value: !Ref BackendAppECSTaskDefinition
+    Export:
+      Name: !Sub ${StackPrefix}-BackendECS-TaskDefinition

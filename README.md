@@ -35,11 +35,13 @@ aws cloudformation create-stack --stack-name ECS-TG-Stack --template-body file:/
 ## 6. ECSクラスタの作成
 ```sh
 aws cloudformation validate-template --template-body file://cfn-ecs-cluster.yaml
-aws cloudformation create-stack --stack-name ECS-CLUSTER-Stack --template-body file://cfn-ecs-cluster.yaml
+aws cloudformation create-stack --stack-name ECS-TASK-Stack --template-body file://cfn-ecs-cluster.yaml
 ```
-
 ## 7. ECSタスク定義の作成
-
+```sh
+aws cloudformation validate-template --template-body file://cfn-ecs-task.yaml
+aws cloudformation create-stack --stack-name ECS-TASK-Stack --template-body file://cfn-ecs-task.yaml
+```
 ## 8. ECSサービスの実行
 ## 8. ECS用のTargetGroup、Listenerの作成
 
