@@ -1,0 +1,88 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: ECS Service Template for CloudFormation Demo. Depends on cfn-ecs-tg.yaml, cfn-ecs-cluster.yaml, cfn-ecs-task.yaml
+#Metadata: 
+
+Parameters: 
+  StackPrefix:
+    Description: Stack Resource Name Prefix
+    Type: String
+    Default: Demo
+  EnvironmentType:
+    Description: The environment type
+    Type: String
+    AllowedValues: ["Dev", "Staging", "Production"]
+    Default: Dev
+
+Mappings:
+  BackendServiceMap:
+    Production:
+      "DesiredCount": 1
+      "ContainerName": "ecsdemo-backend-service"
+      "ContainerPort": 8080
+    Staging:
+      "DesiredCount": 1
+      "ContainerName": "ecsdemo-backend-service"
+      "ContainerPort": 8080
+    Dev:
+      "DesiredCount": 1
+      "ContainerName": "ecsdemo-backend-service"
+      "ContainerPort": 8080
+  FrontendWebAppMap:
+    Production:
+      "DesiredCount": 1
+      "ContainerName" : "ecsdemo-frontend-app"
+      "ContainerPort" : 8080
+    Staging:
+      "DesiredCount": 1
+      "ContainerName" : "ecsdemo-frontend-app"
+      "ContainerPort" : 8080
+    Dev:
+      "DesiredCount": 1
+      "ContainerName" : "ecsdemo-frontend-app"
+      "ContainerPort" : 8080 
+
+#Conditions: 
+
+Resources: 
+  FrontendWebAppService:
+    Type: AWS::ECS::Service
+    Properties:
+      Cluster:
+        Fn::ImportValue: !Sub ${StackPrefix}-Frontend-ECSCluster
+      DesiredCount: !FindInMap [FrontendWebAppMap, !Ref EnvironmentType, DesiredCount]
+      HealthCheckGracePeriodSeconds: 60
+      TaskDefinition:
+        Fn::ImportValue: !Sub ${StackPrefix}-FrontendECS-TaskDefinition
+      LaunchType: EC2
+      LoadBalancers:
+        - ContainerName: !FindInMap [FrontendWebAppMap, !Ref EnvironmentType, ContainerName]
+          ContainerPort: !FindInMap [FrontendWebAppMap, !Ref EnvironmentType, ContainerPort]
+          TargetGroupArn:
+            Fn::ImportValue: !Sub ${StackPrefix}-Frontend-TargetGroup
+  
+  BackendService:
+    Type: AWS::ECS::Service
+    Properties:
+      Cluster:
+        Fn::ImportValue: !Sub ${StackPrefix}-Backend-ECSCluster
+      DesiredCount: !FindInMap [BackendServiceMap, !Ref EnvironmentType, DesiredCount]
+      HealthCheckGracePeriodSeconds: 60
+      TaskDefinition:
+        Fn::ImportValue: !Sub ${StackPrefix}-BackendECS-TaskDefinition
+      LaunchType: EC2
+      LoadBalancers:
+        - ContainerName: !FindInMap [BackendServiceMap, !Ref EnvironmentType, ContainerName]
+          ContainerPort: !FindInMap [BackendServiceMap, !Ref EnvironmentType, ContainerPort]
+          TargetGroupArn:
+            Fn::ImportValue: !Sub ${StackPrefix}-Backend-TargetGroup
+Outputs:
+  FrontendWebAppService:
+    Description: Frontend ECS Service
+    Value: !Ref FrontendWebAppService
+    Export:
+      Name: !Sub ${StackPrefix}-FrontendWebAppService
+  BackendService:
+    Description: Backend ECS Service
+    Value: !Ref BackendService
+    Export:
+      Name: !Sub ${StackPrefix}-BackendService

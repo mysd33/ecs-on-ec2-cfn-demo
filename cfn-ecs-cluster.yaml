@@ -158,9 +158,9 @@ Outputs:
     Description: Frontend ECS Cluster
     Value: !Ref FrontendECSCluster
     Export:
-      Name: !Sub ${StackPrefix}-Frontend-Cluster
+      Name: !Sub ${StackPrefix}-Frontend-ECSCluster
   BackendECSCluster:
     Description: Backend ECS Cluster
     Value: !Ref BackendECSCluster
     Export:
-      Name: !Sub ${StackPrefix}-Backend-Cluster
+      Name: !Sub ${StackPrefix}-Backend-ECSCluster

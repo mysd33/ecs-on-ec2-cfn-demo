@@ -13,7 +13,7 @@ Parameters:
     Type: String
     AllowedValues: ["Dev", "Staging", "Production"]
     Default: Dev
-    ConstraintDescription: must be a prod or test
+        
 Mappings:
   # VPC/Subnet Cidr Block for Environment Type
   # If you need more IP addresses then you can customize these ranges

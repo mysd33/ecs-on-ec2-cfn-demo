@@ -18,7 +18,7 @@ aws cloudformation create-stack --stack-name ECS-SG-Stack --template-body file:/
 ## 4. IAMの作成
 ```sh
 aws cloudformation validate-template --template-body file://cfn-iam.yaml
-aws cloudformation create-stack --stack-name ECS-IAM-Stack --template-body file://cfn-iam.yaml --capabilities CAPABILITY_NAMED_IAM
+aws cloudformation create-stack --stack-name ECS-IAM-Stack --template-body file://cfn-iam.yaml --capabilities CAPABILITY_IAM
 ```
 
 ## 5. ALBの作成
@@ -27,25 +27,41 @@ aws cloudformation create-stack --stack-name ECS-IAM-Stack --template-body file:
 aws cloudformation validate-template --template-body file://cfn-alb.yaml
 aws cloudformation create-stack --stack-name ECS-ALB-Stack --template-body file://cfn-alb.yaml
 ```
-* Target Group
+* ECS上のアプリ用のTarget Group, Listener
 ```sh
 aws cloudformation validate-template --template-body file://cfn-tg.yaml
 aws cloudformation create-stack --stack-name ECS-TG-Stack --template-body file://cfn-tg.yaml
 ```
+
 ## 6. ECSクラスタの作成
 ```sh
 aws cloudformation validate-template --template-body file://cfn-ecs-cluster.yaml
-aws cloudformation create-stack --stack-name ECS-TASK-Stack --template-body file://cfn-ecs-cluster.yaml
+aws cloudformation create-stack --stack-name ECS-CLUSTER-Stack --template-body file://cfn-ecs-cluster.yaml
 ```
+
 ## 7. ECSタスク定義の作成
+* タスク定義
 ```sh
 aws cloudformation validate-template --template-body file://cfn-ecs-task.yaml
 aws cloudformation create-stack --stack-name ECS-TASK-Stack --template-body file://cfn-ecs-task.yaml
 ```
+* タスクへのIAMロールの付与
+  * TBD: RDS,DynamoDBへのアクセスの必要に応じて
+```sh
+aws cloudformation validate-template --template-body file://cfn-ecs-task-role.yaml
+aws cloudformation create-stack --stack-name ECS-TASK-ROLE-Stack --template-body file://cfn-ecs-task-role.yaml
+```
+
 ## 8. ECSサービスの実行
-## 8. ECS用のTargetGroup、Listenerの作成
+```sh
+aws cloudformation validate-template --template-body file://cfn-ecs-service.yaml
+aws cloudformation create-stack --stack-name ECS-SERVICE-Stack --template-body file://cfn-ecs-service.yaml
+```
 
-
+## 9. APの実行確認
+* ブラウザで「http://(Public ALBのDNS名)/backend-for-frontend/index.html」を入力するとフロントエンドAPの画面表示
+* VPCのパブリックサブネット上にEC2を起動し
+　「curl 「http://(Private ALBのDNS名)/backend/api/v1/users」を入力するとバックエンドサービスAPのJSON返却
 ## CloudFormationコマンド文法メモ
 * スタックの新規作成
 ```sh
@@ -71,7 +87,7 @@ aws cloudformation update-termination-protection --stack-name myteststack --no-e
 ```sh
 aws cloudformation delete-stack --stack-name myteststack
 ```
-* IAMロールのスタックの場合 --capabilities CAPABILITY_NAMED_IAM（またはCAPABILITY_IAM）つける
+* IAMロールのスタックの場合 --capabilities CAPABILITY_IAM（またはCAPABILITY_NAMED_IAM）つける
 ```sh
-aws cloudformation create-stack --stack-name my-iamgroup-stack --template-body file://cfn-iamgroup.yaml --capabilities CAPABILITY_NAMED_IAM
+aws cloudformation create-stack --stack-name my-iamgroup-stack --template-body file://cfn-iamgroup.yaml --capabilities CAPABILITY_IAM
 ```

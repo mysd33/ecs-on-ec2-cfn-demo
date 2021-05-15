@@ -87,7 +87,8 @@ Resources:
   PrivateALB:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:      
-      Name: !Sub ${StackPrefix}-PrivateALB     
+      Name: !Sub ${StackPrefix}-PrivateALB
+      Scheme: internal   
       Subnets: 
         - Fn::ImportValue: !Sub ${StackPrefix}-PrivateSubnetOneId
         - Fn::ImportValue: !Sub ${StackPrefix}-PrivateSubnetTwoId
