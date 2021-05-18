@@ -1,0 +1,101 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: CodeBuild Template for CloudFormation Demo
+#Metadata: 
+
+Parameters: 
+  StackPrefix:
+    Description: Stack Resource Name Prefix
+    Type: String
+    Default: Demo
+  AccountID:
+    Description: Account ID
+    Type: String
+    Default: 523530166249
+  ProjectName:
+    Description: CodeBuild Project Name
+    Type: String
+    Default: demo-bff-ci
+  RepositoryName:
+    Description: Source Code Repository Location of CodeCommit
+    Type: String
+    Default: backend-for-frontend
+  ArtifactS3BucketName:
+    Description: Artifact Location of S3 Bucket
+    Type: String
+    Default: mysd33bucket123
+#Mappings: 
+
+#Conditions: 
+
+Resources: 
+  #IAM Role
+  CodeBuildRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Path: /service-role/
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - codebuild.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+  
+  #IAM Policy
+  CodeBuildPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyDocument:
+        Statement:
+        - Action:
+          - logs:CreateLogGroup
+          - logs:CreateLogStream
+          - logs:PutLogEvents
+          Effect: Allow
+          Resource:
+          - !Sub arn:aws:logs:${AWS::Region}:${AccountID}:log-group:/aws/codebuild/${ProjectName}
+          - !Sub arn:aws:logs:${AWS::Region}:${AccountID}:log-group:/aws/codebuild/${ProjectName}:*          
+        - Action:
+          - codecommit:GitPull
+          Effect: Allow
+          Resource:          
+            - !Sub arn:aws:codecommit:${AWS::Region}:${AccountID}:${RepositoryName}
+        - Action:
+          - s3:PutObject
+          - s3:GetObject
+          - s3:GetObjectVersion
+          - s3:GetBucketAcl
+          - s3:GetBucketLocation
+          Effect: Allow
+          Resource: 
+            - !Sub arn:aws:s3:::${ArtifactS3BucketName}
+            - !Sub arn:aws:s3:::${ArtifactS3BucketName}/*      
+      PolicyName: !Sub ${StackPrefix}-CodeBuildPolicy
+      Roles:
+      - !Ref CodeBuildRole
+  
+  #CodeBuild  
+  CodeBuildProject:
+    Type: AWS::CodeBuild::Project
+    Properties:      
+      Name: !Sub ${ProjectName}
+      Description: Backend for Frontend CI Project
+      Source:
+        Type: CODECOMMIT
+        Location: !Sub https://git-codecommit.${AWS::Region}.amazonaws.com/v1/repos/${RepositoryName}
+      Artifacts:
+        Type: S3
+        Location: !Sub ${ArtifactS3BucketName}
+      BadgeEnabled: true
+      Environment:
+        Type: LINUX_CONTAINER
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/amazonlinux2-x86_64-standard:3.0
+      ServiceRole: !GetAtt CodeBuildRole.Arn          
+      TimeoutInMinutes: 10
+      LogsConfig:
+        CloudWatchLogs:
+          Status: ENABLED
+#Outputs:

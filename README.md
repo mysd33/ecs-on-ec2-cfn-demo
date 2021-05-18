@@ -1,3 +1,18 @@
+# CI/CD環境
+## 1. CodeBuildのプロジェクト作成
+```sh
+aws cloudformation validate-template --template-body file://cfn-bff-codebuild.yaml
+aws cloudformation create-stack --stack-name BFF-CodeBuild-Stack --template-body file://cfn-bff-codebuild.yaml --capabilities CAPABILITY_IAM
+aws cloudformation validate-template --template-body file://cfn-backend-codebuild.yaml
+aws cloudformation create-stack --stack-name Backend-CodeBuild-Stack --template-body file://cfn-backend-codebuild.yaml --capabilities CAPABILITY_IAM
+```
+## 2. CodePipelineの作成
+TBD
+
+## 3. ECRの作成
+TBD
+
+# ECS環境
 ## 1. VPCおよびサブネット、InternetGateway等の作成
 ```sh
 aws cloudformation validate-template --template-body file://cfn-vpc.yaml
