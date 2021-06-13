@@ -1,4 +1,4 @@
-# CI/CD環境
+# CI環境
 ## 1. CodeBuildのプロジェクト作成
 ```sh
 aws cloudformation validate-template --template-body file://cfn-bff-codebuild.yaml
@@ -6,10 +6,8 @@ aws cloudformation create-stack --stack-name BFF-CodeBuild-Stack --template-body
 aws cloudformation validate-template --template-body file://cfn-backend-codebuild.yaml
 aws cloudformation create-stack --stack-name Backend-CodeBuild-Stack --template-body file://cfn-backend-codebuild.yaml --capabilities CAPABILITY_IAM
 ```
-## 2. CodePipelineの作成
-TBD
 
-## 3. ECRの作成
+## 2. ECRの作成
 TBD
 
 # ECS環境
@@ -77,7 +75,20 @@ aws cloudformation create-stack --stack-name ECS-SERVICE-Stack --template-body f
 * ブラウザで「http://(Public ALBのDNS名)/backend-for-frontend/index.html」を入力するとフロントエンドAPの画面表示
 * VPCのパブリックサブネット上にEC2を起動し
 　「curl 「http://(Private ALBのDNS名)/backend/api/v1/users」を入力するとバックエンドサービスAPのJSON返却
-## CloudFormationコマンド文法メモ
+
+# CD環境
+## 1. CodePipelineの作成
+
+T```sh
+aws cloudformation validate-template --template-body file://cfn-bff-codepipeline.yaml
+aws cloudformation create-stack --stack-name Bff-CodePipeline-Stack --template-body file://cfn-bff-codepipeline.yaml
+
+aws cloudformation validate-template --template-body file://cfn-backend-codepipeline.yaml
+aws cloudformation create-stack --stack-name Backend-CodePipeline-Stack --template-body file://cfn-backend-codepipeline.yaml --capabilities CAPABILITY_IAM
+```
+
+
+# CloudFormationコマンド文法メモ
 * スタックの新規作成
 ```sh
 aws cloudformation create-stack --stack-name myteststack --template-body file://cfn-ec2.yaml
