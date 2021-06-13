@@ -112,4 +112,9 @@ Resources:
       LogsConfig:
         CloudWatchLogs:
           Status: ENABLED
-#Outputs:
+Outputs:
+  CodeBuildProjectName:
+    Description: CodeBuild Project Name
+    Value: !Ref ProjectName
+    Export: 
+      Name: !Sub ${StackPrefix}-Bff-CodeBuildProjectName
