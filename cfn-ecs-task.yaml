@@ -11,7 +11,7 @@ Parameters:
     Description: The environment type
     Type: String
     AllowedValues: ["Dev", "Staging", "Production"]
-    Default: Dev
+    Default: Production
     ConstraintDescription: must be a prod or test
 
 Mappings: 
@@ -99,6 +99,7 @@ Resources:
           Environment:
             - Name: ENV_TYPE
               Value: !FindInMap [FrontendAppTaskDefinitionMap, !Ref EnvironmentType, Profile]
+            #TODO bff apのservice.dnsプロパティの設定追加
           Memory: !FindInMap [FrontendAppTaskDefinitionMap, !Ref EnvironmentType, ContainerMemory]
   #ECS Task Definition for Backend Application
   BackendServiceECSTaskDefinition:

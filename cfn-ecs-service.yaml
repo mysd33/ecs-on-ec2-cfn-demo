@@ -11,7 +11,7 @@ Parameters:
     Description: The environment type
     Type: String
     AllowedValues: ["Dev", "Staging", "Production"]
-    Default: Dev
+    Default: Production
 
 Mappings:
   BackendServiceMap:
@@ -47,6 +47,7 @@ Resources:
   FrontendWebAppService:
     Type: AWS::ECS::Service
     Properties:
+      ServiceName: !Sub ${StackPrefix}-FrontendWebAppService
       Cluster:
         Fn::ImportValue: !Sub ${StackPrefix}-Frontend-ECSCluster
       DesiredCount: !FindInMap [FrontendWebAppMap, !Ref EnvironmentType, DesiredCount]
@@ -63,6 +64,7 @@ Resources:
   BackendService:
     Type: AWS::ECS::Service
     Properties:
+      ServiceName: !Sub ${StackPrefix}-BackendService
       Cluster:
         Fn::ImportValue: !Sub ${StackPrefix}-Backend-ECSCluster
       DesiredCount: !FindInMap [BackendServiceMap, !Ref EnvironmentType, DesiredCount]
@@ -81,8 +83,18 @@ Outputs:
     Value: !Ref FrontendWebAppService
     Export:
       Name: !Sub ${StackPrefix}-FrontendWebAppService
+  FrontendWebAppServiceName:
+    Description: Frontend ECS Service Name
+    Value: !Sub ${StackPrefix}-FrontendWebAppService
+    Export:
+      Name: !Sub ${StackPrefix}-FrontendWebAppService-Name
   BackendService:
     Description: Backend ECS Service
     Value: !Ref BackendService
     Export:
       Name: !Sub ${StackPrefix}-BackendService
+  BackendServiceName:
+    Description: Backend ECS Service Name
+    Value: !Sub ${StackPrefix}-BackendService
+    Export:
+      Name: !Sub ${StackPrefix}-BackendService-Name

@@ -105,6 +105,7 @@ Resources:
         PrivilegedMode: true
       ServiceRole: !GetAtt CodeBuildRole.Arn          
       TimeoutInMinutes: 10
+      #TODO: Cache for Maven don't work?
       Cache:
         Type: LOCAL
         Modes:

@@ -16,7 +16,7 @@ Parameters:
     Description: The environment type
     Type: String
     AllowedValues: ["Dev", "Staging", "Production"]
-    Default: Dev
+    Default: Production
     ConstraintDescription: must be a prod or test
 Mappings:
   FrontendClusterDefinitionMap:
@@ -159,8 +159,18 @@ Outputs:
     Value: !Ref FrontendECSCluster
     Export:
       Name: !Sub ${StackPrefix}-Frontend-ECSCluster
+  FrontendECSClusterName:
+    Description: Frontend ECS Cluster Name
+    Value: !Sub ${StackPrefix}-Frontend-Cluster
+    Export:
+      Name: !Sub ${StackPrefix}-Frontend-ECSCluster-Name
   BackendECSCluster:
     Description: Backend ECS Cluster
     Value: !Ref BackendECSCluster
     Export:
       Name: !Sub ${StackPrefix}-Backend-ECSCluster
+  BackendECSClusterName:
+    Description: Backend ECS Cluster Name
+    Value: !Sub ${StackPrefix}-Backtend-Cluster
+    Export:
+      Name: !Sub ${StackPrefix}-Backend-ECSCluster-Name
