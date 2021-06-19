@@ -85,6 +85,12 @@ aws cloudformation validate-template --template-body file://cfn-backend-codepipe
 aws cloudformation create-stack --stack-name Backend-CodePipeline-Stack --template-body file://cfn-backend-codepipeline.yaml --capabilities CAPABILITY_IAM
 ```
 
+## 2. BFFアプリケーションのapplication.yamlの変更
+* 現状、application.yamlのservice.dnsのurl値を、CloudFormationで作成した内部ALBのURLに変更しCodeCommitにプッシュしてください
+  * 環境変数から読み込む対応をできていないためです。このため、APでエラーが発生すると思います。
+  * プッシュすると、CodePipelineのパイプラインが起動し最新のDockerイメージでECRへデプロイしてくれます
+  * その後、APが正しく動きます。
+
 
 # CloudFormationコマンド文法メモ
 * スタックの新規作成
