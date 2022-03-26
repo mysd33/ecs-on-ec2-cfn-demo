@@ -1,6 +1,10 @@
 # CI環境
 ## 1. ECRの作成
-TBD
+* TBD: 現状手動でECRのリポジトリ作成
+  * mynavi-sample-ecs-bff
+    * BFF用
+  * mynavi-sample-ecs-backend
+    * バックエンド用
 ## 2. CodeBuildのプロジェクト作成
 ```sh
 aws cloudformation validate-template --template-body file://cfn-bff-codebuild.yaml
