@@ -7,10 +7,6 @@ Parameters:
     Description: Stack Resource Name Prefix
     Type: String
     Default: Demo
-  AccountID:
-    Description: Account ID
-    Type: String
-    Default: 523530166249
   ProjectName:
     Description: CodeBuild Project Name
     Type: String
@@ -55,13 +51,13 @@ Resources:
           - logs:PutLogEvents
           Effect: Allow
           Resource:
-          - !Sub arn:aws:logs:${AWS::Region}:${AccountID}:log-group:/aws/codebuild/${ProjectName}
-          - !Sub arn:aws:logs:${AWS::Region}:${AccountID}:log-group:/aws/codebuild/${ProjectName}:*          
+          - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${ProjectName}
+          - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${ProjectName}:*          
         - Action:
           - codecommit:GitPull
           Effect: Allow
           Resource:          
-            - !Sub arn:aws:codecommit:${AWS::Region}:${AccountID}:${RepositoryName}
+            - !Sub arn:aws:codecommit:${AWS::Region}:${AWS::AccountId}:${RepositoryName}
         - Action:
           - ecr:BatchCheckLayerAvailability
           - ecr:CompleteLayerUpload
