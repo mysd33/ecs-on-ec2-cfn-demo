@@ -1,0 +1,88 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: CodeDeploy Template for CloudFormation Demo. Depends on cfn-alb.yaml, cfn-tg-bg.yaml, cfn-ecs-cluster.yaml, cfn-ecs-task.yaml, cfn-ecs-service.yaml
+#Metadata: 
+
+Parameters: 
+  StackPrefix:
+    Description: Stack Resource Name Prefix
+    Type: String
+    Default: Demo
+
+#Mappings: 
+
+#Conditions: 
+
+Resources:
+#Code Deploy Application
+  FrontendCodeDeployApplication: 
+    Type: AWS::CodeDeploy::Application 
+    Properties:
+      ComputePlatform: ECS
+      Tags:
+        - Key: Name
+          Value: !Sub ${StackPrefix}-FrontendCodeDeployApplication
+
+#IAM Role for CodeDeploy Service Role
+  CodeDeployServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Path: /
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: codedeploy.amazonaws.com
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AWSCodeDeployRoleForECS
+      Tags:
+        - Key: Name
+          Value: !Sub ${StackPrefix}-BffCodeDeployServiceRole
+
+#Code Deploy Deployment Group
+  FrontendCodeDeployDeploymentGroup:
+    Type: AWS::CodeDeploy::DeploymentGroup
+    Properties: 
+      ApplicationName: !Ref FrontendCodeDeployApplication
+      DeploymentStyle:
+        DeploymentType: BLUE_GREEN
+        DeploymentOption: WITH_TRAFFIC_CONTROL        
+      BlueGreenDeploymentConfiguration:
+        DeploymentReadyOption:
+          ActionOnTimeout: CONTINUE_DEPLOYMENT
+        TerminateBlueInstancesOnDeploymentSuccess:
+          Action: TERMINATE
+          TerminationWaitTimeInMinutes: 0
+      DeploymentConfigName: CodeDeployDefault.ECSLinear10PercentEvery1Minutes
+      #DeploymentConfigName: CodeDeployDefault.ECSAllAtOnce
+      ECSServices:
+        - ClusterName: 
+            Fn::ImportValue: !Sub ${StackPrefix}-Frontend-ECSCluster-Name
+          ServiceName: 
+            Fn::ImportValue: !Sub ${StackPrefix}-FrontendWebAppService-Name
+      LoadBalancerInfo:
+        TargetGroupPairInfoList:
+          - ProdTrafficRoute:
+              ListenerArns:
+                - Fn::ImportValue: !Sub ${StackPrefix}-PubALB-Listener
+            #TestTrafficRoute                
+            TargetGroups:
+              - Name:
+                  Fn::ImportValue: !Sub ${StackPrefix}-PubALB-DefaultTargetGroupName
+              - Name:
+                  Fn::ImportValue: !Sub ${StackPrefix}-PubALB-TargetGroup2Name
+      ServiceRoleArn: !GetAtt CodeDeployServiceRole.Arn
+      Tags:
+        - Key: Name
+          Value: !Sub ${StackPrefix}-FrontendCodeDeployDeploymentGroup        
+Outputs:
+  FrontendCodeDeployApplicationName: 
+    Description: CodeDeploy Application Name
+    Value: !Ref FrontendCodeDeployApplication
+    Export: 
+      Name: !Sub ${StackPrefix}-Frontend-CodeDeployAppName
+  FrontendCodeDeployDeploymentGroupName:
+    Description: CodeDeploy Deployment Group Name
+    Value: !Ref FrontendCodeDeployDeploymentGroup
+    Export: 
+      Name: !Sub ${StackPrefix}-Frontend-DeploymentGroupName

@@ -1,0 +1,109 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: ALB Blue Green Deployment TargetGroup2 Template for CloudFormation Demo. Depends On cfn-vpc.yaml
+
+Parameters:
+  StackPrefix:
+    Description: Stack Resource Name Prefix
+    Type: String
+    Default: Demo
+  EnvironmentType:
+    Description: Which environments to deploy your service.
+    Type: String
+    AllowedValues: ["Dev", "Staging", "Production"]
+    Default: Dev
+  FrontendHealthCheckPath:
+    Description: Frontend WebApp health check path
+    Type: String
+    MinLength: 1
+    MaxLength: 255
+    AllowedPattern: ^[-¥.¥/a-zA-Z0-9]*$
+    Default: /backend-for-frontend/index.html
+    #Default: /backend-for-frontend/actuator/health
+  BackendHealthCheckPath:
+    Description: Backend Service Default health check path
+    Type: String
+    MinLength: 1
+    MaxLength: 255
+    AllowedPattern: ^[-¥.¥/a-zA-Z0-9]*$
+    Default: /backend/api/v1/users
+    #Default: /backend/actuator/health    
+
+Mappings:
+  DeployEnvironmentMap:
+    Dev:
+      "Protocol": "HTTP"
+      "ListenerPort": 80      
+      "TargetGroupPort": 8080      
+    Staging:
+      "Protocol": "HTTP"
+      "ListenerPort": 80
+      "TargetGroupPort": 8080
+    Production:
+      "Protocol": "HTTP"
+      "ListenerPort": 80
+      "TargetGroupPort": 8080
+
+Resources:
+  PublicALBTargetGroup2:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub ${StackPrefix}-PubTg2
+      TargetType: ip
+      VpcId: 
+        Fn::ImportValue: !Sub ${StackPrefix}-VPC-ID
+      Port: !FindInMap [DeployEnvironmentMap, !Ref EnvironmentType, TargetGroupPort]
+      Protocol: !FindInMap [DeployEnvironmentMap, !Ref EnvironmentType, Protocol]
+      HealthCheckPath: !Ref FrontendHealthCheckPath      
+      HealthCheckIntervalSeconds: 60      
+      #HealthCheckTimeoutSeconds: 5
+      #HealthyThresholdCount: 5
+      #TargetGroupAttributes: 
+      #  - Key: deregistration_delay.timeout_seconds
+      #    Value: '60'
+      Tags:
+        - Key: Name
+          Value: !Sub ${StackPrefix}-PubTg2
+
+  PrivateALBTargetGroup2:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub ${StackPrefix}-PrivTg2
+      TargetType: ip
+      VpcId: 
+        Fn::ImportValue: !Sub ${StackPrefix}-VPC-ID
+      Port: !FindInMap [DeployEnvironmentMap, !Ref EnvironmentType, TargetGroupPort]
+      Protocol: !FindInMap [DeployEnvironmentMap, !Ref EnvironmentType, Protocol]
+      HealthCheckPath: !Ref BackendHealthCheckPath
+      HealthCheckIntervalSeconds: 60      
+      #HealthCheckTimeoutSeconds: 5
+      #HealthyThresholdCount: 5
+      #TargetGroupAttributes: 
+      #  - Key: deregistration_delay.timeout_seconds
+      #    Value: '60' 
+      Tags:
+        - Key: Name
+          Value: !Sub ${StackPrefix}-PrivTg2     
+
+#TODO: Test Listner
+
+Outputs:
+  PublicALBDefaultTargetGroup:
+    Description: Public ALB TagetGroup 2 for Blue Green Deployment
+    Value: !Ref PublicALBTargetGroup2
+    Export:
+      Name: !Sub ${StackPrefix}-PubALB-TargetGroup2
+  PublicALBDefaultTargetGroupName:
+    Description: Public ALB TagetGroup 2 Namefor Blue Green Deployment
+    Value: !GetAtt  PublicALBTargetGroup2.TargetGroupName
+    Export:
+      Name: !Sub ${StackPrefix}-PubALB-TargetGroup2Name
+  PrivateALBDefaultTargetGroup:
+    Description: Private ALB TagetGroup 2 for Blue Green Deployment
+    Value: !Ref PrivateALBTargetGroup2
+    Export:
+      Name: !Sub ${StackPrefix}-PrivALB-TargetGroup2
+  PrivateALBDefaultTargetGroupName:
+    Description: Private ALB TagetGroup 2 for Blue Green Deployment
+    Value: !GetAtt  PrivateALBTargetGroup2.TargetGroupName
+    Export:
+      Name: !Sub ${StackPrefix}-PrivALB-TargetGroup2Name

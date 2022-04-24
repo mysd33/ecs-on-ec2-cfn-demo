@@ -1,11 +1,11 @@
 # SpringBoot APをECS on EC2で動作させCode系でCI/CDするCloudFormationサンプルテンプレート
 
 ## 構成
-* CDは標準のローリングアップデートに対応しています。BlueGreenデプロイメントも今後対応予定
+* CDは標準のローリングアップデートとBlueGreenデプロイメントの両方に対応しています
   * システム構成図　ローリングアップデート版
 ![システム構成図ローリングアップデート版](img/ecs-rolling-update.png)
   * システム構成図　BlueGreenデプロメント版
-    * TBD
+![システム構成図BlueGreenデプロイメント版](img/ecs-bluegreen-deployment.png)
 
 ## CI環境
 * 別途、以下の2つのSpringBootAPのプロジェクトが以下のリポジトリ名でCodeCommitにある前提
@@ -62,7 +62,10 @@ aws cloudformation validate-template --template-body file://cfn-alb.yaml
 aws cloudformation create-stack --stack-name ECS-ALB-Stack --template-body file://cfn-alb.yaml
 ```
 * BlueGreenデプロイメントの場合のみ以下実行し、2つ目（Green環境）用のTarget Groupを作成
-  * TBD: 今後作成・動作確認予定
+```sh
+aws cloudformation validate-template --template-body file://cfn-tg-bg.yaml
+aws cloudformation create-stack --stack-name ECS-TG-BG-Stack --template-body file://cfn-tg-bg.yaml
+```
 
 * ~~手順削除：ListenerRuleを使ったTargetGroupの設定~~
 ~~aws cloudformation validate-template --template-body file://cfn-tg.yaml~~
@@ -92,7 +95,7 @@ aws cloudformation validate-template --template-body file://cfn-ecs-service.yaml
 aws cloudformation create-stack --stack-name ECS-SERVICE-Stack --template-body file://cfn-ecs-service.yaml
 ```
 ### 8-2. ECSサービスの実行（BlueGreenデプロイメントの場合）
-* TBD: 今後作成・動作確認予定
+* BlueGreenデプロイメントの場合は以下のパラメータを指定して起動
 ```sh
 aws cloudformation validate-template --template-body file://cfn-ecs-service.yaml
 aws cloudformation create-stack --stack-name ECS-SERVICE-Stack --template-body file://cfn-ecs-service.yaml --parameters ParameterKey=DeployType,ParameterValue=CODE_DEPLOY
@@ -128,8 +131,28 @@ aws cloudformation create-stack --stack-name Backend-CodePipeline-Stack --templa
 
 ## CD環境（標準のBlueGreenデプロイメントの場合）
 * BlueGreenデプロイメントの場合は、以下のコマンドを実行
-  * TBD: 今後作成・動作確認予定
+### 1. CodeDeployの作成
+```sh
+aws cloudformation validate-template --template-body file://cfn-bff-codedeploy.yaml
+aws cloudformation create-stack --stack-name Bff-CodeDeploy-Stack --template-body file://cfn-bff-codedeploy.yaml --capabilities CAPABILITY_IAM
 
+aws cloudformation validate-template --template-body file://cfn-backend-codedeploy.yaml
+aws cloudformation create-stack --stack-name Backend-CodeDeploy-Stack --template-body file://cfn-backend-codedeploy.yaml --capabilities CAPABILITY_IAM
+```
+  
+### 2. BlueGreenデプロイメント対応のCodePipelineの作成
+```sh
+aws cloudformation validate-template --template-body file://cfn-bff-codepipeline-bg.yaml
+aws cloudformation create-stack --stack-name Bff-CodePipeline-BG-Stack --template-body file://cfn-bff-codepipeline-bg.yaml --capabilities CAPABILITY_IAM
+
+aws cloudformation validate-template --template-body file://cfn-backend-codepipeline-bg.yaml
+aws cloudformation create-stack --stack-name Backend-CodePipeline-BG-Stack --template-body file://cfn-backend-codepipeline-bg.yaml --capabilities CAPABILITY_IAM
+```
+### 3. CodePipelineの確認
+  * CodePipelineの作成後、パイプラインが自動実行されるので、デプロイ成功することを確認する
+### 4. ソースコードの変更
+  * 何らかのソースコードの変更を加えて、CodeCommitにプッシュする
+  * CodePipelineのパイプラインが実行され、新しいAPがデプロイされることを確認する
 ### 2. CodePipelineの確認
   * CodePipelineの作成後、パイプラインが自動実行されるので、デプロイ成功することを確認する
 
