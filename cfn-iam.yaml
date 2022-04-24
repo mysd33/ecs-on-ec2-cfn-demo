@@ -12,8 +12,8 @@ Parameters:
 
 #Conditions: 
 
-Resources: 
-  #IAM Role for ECS
+Resources:
+  #IAM Role for ECS on EC2 AutoScaling LaunchConfiguration
   ECSRole:
     Type: AWS::IAM::Role
     Properties:
@@ -34,6 +34,7 @@ Resources:
       Roles:
         - !Ref ECSRole
 
+
   #IAM Role for Frontend ECS Task
   FrontendECSTaskRole:
     Type: AWS::IAM::Role
@@ -45,6 +46,9 @@ Resources:
             Effect: Allow
             Principal:
               Service: ecs-tasks.amazonaws.com
+      Tags:
+        - Key: Name
+          Value: !Sub ${StackPrefix}-FrontendECSTaskRole
 
   #IAM Role for Backend ECS Task
   BackendECSTaskRole:
@@ -57,8 +61,11 @@ Resources:
             Effect: Allow
             Principal:
               Service: ecs-tasks.amazonaws.com
+      Tags:
+        - Key: Name
+          Value: !Sub ${StackPrefix}-BackendECSTaskRole
 
-  #IAM Role for ECS Execution  
+  #IAM Role for ECS Task Execution  
   ECSTaskExecutionRole:
     Type: AWS::IAM::Role
     Properties:
@@ -73,7 +80,9 @@ Resources:
         - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
         - arn:aws:iam::aws:policy/AmazonSSMReadOnlyAccess
         - arn:aws:iam::aws:policy/SecretsManagerReadWrite
-
+      Tags:
+        - Key: Name
+          Value: !Sub ${StackPrefix}-ECSTaskExecutionRole
 
 Outputs:
   ECSIamInstanceProfileID:

@@ -11,13 +11,30 @@ Parameters:
   TerminalCidrIP:
     Description: CidrIP for terminal machine to Connect to AWS Service
     Type: String
-    Default: 60.112.119.125/32
+    Default: 0.0.0.0/0    
 
 #Mappings: 
 
 #Conditions: 
 
-Resources: 
+Resources:
+  #Security Group of Bation EC2
+  BastionSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Access to the bastion
+      VpcId:
+        Fn::ImportValue: !Sub ${StackPrefix}-VPC-ID
+      SecurityGroupIngress:
+        # Allow access to Bastion SSH from anywhere on the internet
+        - CidrIp: !Ref TerminalCidrIP
+          IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          Description: Ingress from the terminal machine
+      Tags:
+        - Key: Name
+          Value: !Sub ${StackPrefix}-Bastion-SG 
   #Security Group of Public ALB for BFF
   PublicALBSecurityGroup:
     Type: AWS::EC2::SecurityGroup
@@ -74,8 +91,10 @@ Resources:
       SecurityGroupIngress:        
         - SourceSecurityGroupId: !Ref PublicALBSecurityGroup
           IpProtocol: tcp
-          FromPort: 32768
-          ToPort: 61000
+          FromPort: 8080
+          ToPort: 8080
+#          FromPort: 32768
+#          ToPort: 61000          
           Description: Ingress from the public ALB for dynamic port mapping
       Tags:
         - Key: Name
@@ -91,8 +110,10 @@ Resources:
       SecurityGroupIngress:        
         - SourceSecurityGroupId: !Ref PrivateALBSecurityGroup
           IpProtocol: tcp
-          FromPort: 32768
-          ToPort: 61000
+          FromPort: 8080
+          ToPort: 8080
+#          FromPort: 32768
+#          ToPort: 61000          
           Description: Ingress from the private ALB for dynamic port mapping
       Tags:
         - Key: Name
@@ -100,6 +121,11 @@ Resources:
 
 
 Outputs:
+  BastionSecurityGroupID:
+    Description: BastionSecurityGroup ID
+    Value:  !Ref BastionSecurityGroup
+    Export: 
+      Name: !Sub ${StackPrefix}-BastionSecurityGroup-ID
   PublicALBSecurityGroupID:
     Description: PublicALBSecurityGroup ID
     Value:  !Ref PublicALBSecurityGroup

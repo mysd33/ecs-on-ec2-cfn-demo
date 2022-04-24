@@ -20,27 +20,24 @@ Mappings:
       "Memory" : 1024
       "Cpu" : 512
       "ContainerName" : "ecsdemo-frontend-app"
-      "ContainerImage" : "523530166249.dkr.ecr.ap-northeast-1.amazonaws.com/mynavi-sample-ecs-bff:latest"
+      "ContainerImage" : "mynavi-sample-ecs-bff:latest"
       "ContainerPort" : 8080
-      "HostPort" : 0
       "ContainerMemory" : 1024
       "Profile" : "production"
     Staging:
       "Memory" : 1024
       "Cpu" : 512
       "ContainerName" : "ecsdemo-frontend-app"
-      "ContainerImage" : "523530166249.dkr.ecr.ap-northeast-1.amazonaws.com/mynavi-sample-ecs-bff:latest"
-      "ContainerPort" : 8080
-      "HostPort" : 0
+      "ContainerImage" : "mynavi-sample-ecs-bff:latest"
+      "ContainerPort" : 8080      
       "ContainerMemory" : 1024
       "Profile" : "staging"
     Dev:
       "Memory" : 1024
       "Cpu" : 512
       "ContainerName" : "ecsdemo-frontend-app"
-      "ContainerImage" : "523530166249.dkr.ecr.ap-northeast-1.amazonaws.com/mynavi-sample-ecs-bff:latest"
+      "ContainerImage" : "mynavi-sample-ecs-bff:latest"
       "ContainerPort" : 8080
-      "HostPort" : 0
       "ContainerMemory" : 1024
       "Profile" : "dev"
   BackendServiceTaskDefinitionMap:
@@ -48,33 +45,47 @@ Mappings:
       "Memory" : 1024
       "Cpu" : 512
       "ContainerName" : "ecsdemo-backend-service"
-      "ContainerImage" : "523530166249.dkr.ecr.ap-northeast-1.amazonaws.com/mynavi-sample-ecs-backend:latest"
+      "ContainerImage" : "mynavi-sample-ecs-backend:latest"
       "ContainerPort" : 8080
-      "HostPort" : 0
       "ContainerMemory" : 1024
       "Profile" : "production"
     Staging:
       "Memory" : 1024
       "Cpu" : 512
       "ContainerName" : "ecsdemo-backend-service"
-      "ContainerImage" : "523530166249.dkr.ecr.ap-northeast-1.amazonaws.com/mynavi-sample-ecs-backend:latest"
+      "ContainerImage" : "mynavi-sample-ecs-backend:latest"
       "ContainerPort" : 8080
-      "HostPort" : 0
       "ContainerMemory" : 1024
       "Profile" : "staging"
     Dev:
       "Memory" : 1024
       "Cpu" : 512
       "ContainerName" : "ecsdemo-backend-service"
-      "ContainerImage" : "523530166249.dkr.ecr.ap-northeast-1.amazonaws.com/mynavi-sample-ecs-backend:latest"
+      "ContainerImage" : "mynavi-sample-ecs-backend:latest"
       "ContainerPort" : 8080
-      "HostPort" : 0
       "ContainerMemory" : 1024
       "Profile" : "dev"
 
 #Conditions: 
 
 Resources:
+  #Log Group
+  FrontEndAppECSLogGroup:
+    Type: "AWS::Logs::LogGroup"
+    Properties:
+      LogGroupName: !Sub "/ecs/logs/${StackPrefix}-bff-ecs-group"
+      Tags:
+        - Key: Name
+          Value: !Sub ${StackPrefix}-FrontEndAppECSLogGroup
+
+  BackendAppECSLogGroup:
+    Type: "AWS::Logs::LogGroup"
+    Properties:
+      LogGroupName: !Sub "/ecs/logs/${StackPrefix}-backend-ecs-group"
+      Tags:
+        - Key: Name
+          Value: !Sub ${StackPrefix}-BackendAppECSLogGroup
+
   #ECS Task Definition for Frontend Application
   FrontendAppECSTaskDefinition:
     Type: AWS::ECS::TaskDefinition
@@ -84,48 +95,77 @@ Resources:
         - EC2
       Memory: !FindInMap [FrontendAppTaskDefinitionMap, !Ref EnvironmentType, Memory]
       Cpu: !FindInMap [FrontendAppTaskDefinitionMap, !Ref EnvironmentType, Cpu]
-      #TODO: awsvpc networkmode (not dyanamic port mapping)
-      NetworkMode: bridge
+      NetworkMode: awsvpc      
+      #NetworkMode: bridge
       ExecutionRoleArn:
         Fn::ImportValue: !Sub ${StackPrefix}-ECSTaskExecutionRole-Arn
       TaskRoleArn:
         Fn::ImportValue: !Sub ${StackPrefix}-FrontendECSTaskRole-Arn
       ContainerDefinitions:
         - Name: !FindInMap [FrontendAppTaskDefinitionMap, !Ref EnvironmentType, ContainerName]
-          Image: !FindInMap [FrontendAppTaskDefinitionMap, !Ref EnvironmentType, ContainerImage]
+          Image: 
+            Fn::Join:
+              - ""
+              - - !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/
+                - !FindInMap [FrontendAppTaskDefinitionMap, !Ref EnvironmentType, ContainerImage]
           PortMappings:
             - ContainerPort: !FindInMap [FrontendAppTaskDefinitionMap, !Ref EnvironmentType, ContainerPort]
-              HostPort: !FindInMap [FrontendAppTaskDefinitionMap, !Ref EnvironmentType, HostPort]
           Environment:
             - Name: ENV_TYPE
-              Value: !FindInMap [FrontendAppTaskDefinitionMap, !Ref EnvironmentType, Profile]
-            #TODO bff apのservice.dnsプロパティの設定追加
+              Value: !FindInMap [FrontendAppTaskDefinitionMap, !Ref EnvironmentType, Profile]            
+            - Name: BACKEND_URL
+              Value: 
+                Fn::Join: 
+                  - ""
+                  - - "http://"
+                    - Fn::ImportValue: !Sub ${StackPrefix}-PrivALB-DNS                
           Memory: !FindInMap [FrontendAppTaskDefinitionMap, !Ref EnvironmentType, ContainerMemory]
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref FrontEndAppECSLogGroup
+              awslogs-region: !Ref "AWS::Region"
+              awslogs-stream-prefix: !Ref StackPrefix
+      Tags:
+        - Key: Name
+          Value: !Sub ${StackPrefix}-FrontendAppECSTaskDefinition
   #ECS Task Definition for Backend Application
   BackendServiceECSTaskDefinition:
     Type: AWS::ECS::TaskDefinition
     Properties:
       Family: !Sub ${StackPrefix}-ecstask-backend-app
       RequiresCompatibilities:
-        - EC2
+        - EC2        
       Memory: !FindInMap [BackendServiceTaskDefinitionMap, !Ref EnvironmentType, Memory]
-      Cpu: !FindInMap [BackendServiceTaskDefinitionMap, !Ref EnvironmentType, Cpu]
-      #TODO: awsvpc networkmode (cannot dyanamic port mapping)
-      NetworkMode: bridge
+      Cpu: !FindInMap [BackendServiceTaskDefinitionMap, !Ref EnvironmentType, Cpu]      
+      NetworkMode: awsvpc      
+      #NetworkMode: bridge
       ExecutionRoleArn:
         Fn::ImportValue: !Sub ${StackPrefix}-ECSTaskExecutionRole-Arn
       TaskRoleArn:
         Fn::ImportValue: !Sub ${StackPrefix}-BackendECSTaskRole-Arn
       ContainerDefinitions:
-        - Name: !FindInMap [BackendServiceTaskDefinitionMap, !Ref EnvironmentType, ContainerName]
-          Image: !FindInMap [BackendServiceTaskDefinitionMap, !Ref EnvironmentType, ContainerImage]
+        - Name: !FindInMap [BackendServiceTaskDefinitionMap, !Ref EnvironmentType, ContainerName]          
+          Image: 
+            Fn::Join:
+              - ""
+              - - !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/
+                - !FindInMap [BackendServiceTaskDefinitionMap, !Ref EnvironmentType, ContainerImage]
           PortMappings:
-            - ContainerPort: !FindInMap [BackendServiceTaskDefinitionMap, !Ref EnvironmentType, ContainerPort]
-              HostPort: !FindInMap [BackendServiceTaskDefinitionMap, !Ref EnvironmentType, HostPort]
+            - ContainerPort: !FindInMap [BackendServiceTaskDefinitionMap, !Ref EnvironmentType, ContainerPort]              
           Environment:
             - Name: ENV_TYPE
               Value: !FindInMap [BackendServiceTaskDefinitionMap, !Ref EnvironmentType, Profile]
           Memory: !FindInMap [BackendServiceTaskDefinitionMap, !Ref EnvironmentType, ContainerMemory]          
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref BackendAppECSLogGroup
+              awslogs-region: !Ref "AWS::Region"
+              awslogs-stream-prefix: !Ref StackPrefix
+      Tags:
+        - Key: Name
+          Value: !Sub ${StackPrefix}-BackendServiceECSTaskDefinition
 Outputs:
   FrontendAppECSTaskDefinition:
     Description: Frontend ECS Task Definition

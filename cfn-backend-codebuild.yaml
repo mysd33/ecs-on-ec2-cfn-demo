@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: CodeBuild Template for CloudFormation Demo
+Description: CodeBuild Template for CloudFormation Demo. Depends on cfn-ecr.yaml
 #Metadata: 
 
 Parameters: 
@@ -19,6 +19,7 @@ Parameters:
     Description: Artifact Location of S3 Bucket
     Type: String
     Default: mysd33bucket123
+    
 #Mappings: 
 
 #Conditions: 
@@ -68,6 +69,10 @@ Resources:
           Effect: Allow
           Resource: "*"            
         - Action:
+          - ecs:DescribeTaskDefinition
+          Effect: Allow
+          Resource: "*"                  
+        - Action:
           - s3:PutObject
           - s3:GetObject
           - s3:GetObjectVersion
@@ -99,6 +104,12 @@ Resources:
         ComputeType: BUILD_GENERAL1_SMALL
         Image: aws/codebuild/amazonlinux2-x86_64-standard:3.0
         PrivilegedMode: true
+        EnvironmentVariables:
+          - Name: ECR_URI
+            Value: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com
+          - Name: REPOSITORY_URI
+            Value:
+              Fn::ImportValue: !Sub ${StackPrefix}-BackendECRRepositoryUri
       ServiceRole: !GetAtt CodeBuildRole.Arn          
       TimeoutInMinutes: 10
       #TODO: Cache for Maven don't work?

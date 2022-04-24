@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: ECS Service Template for CloudFormation Demo. Depends on cfn-ecs-tg.yaml, cfn-ecs-cluster.yaml, cfn-ecs-task.yaml
+Description: ECS Service Template for CloudFormation Demo. Depends on cfn-vpc.yaml, cfn-sg.yaml, cfn-alb.yaml, cfn-ecs-cluster.yaml, cfn-ecs-task.yaml
 #Metadata: 
 
 Parameters: 
@@ -12,13 +12,18 @@ Parameters:
     Type: String
     AllowedValues: ["Dev", "Staging", "Production"]
     Default: Production
+  DeployType:
+    Description: ECS Deployment Controller Type
+    Type: String
+    AllowedValues: ["ECS", "CODE_DEPLOY", "EXTERNAL"]
+    Default: ECS
 
 Mappings:
   BackendServiceMap:
     Production:
       "DesiredCount": 1
       "ContainerName": "ecsdemo-backend-service"
-      "ContainerPort": 8080
+      "ContainerPort": 8080      
     Staging:
       "DesiredCount": 1
       "ContainerName": "ecsdemo-backend-service"
@@ -59,8 +64,28 @@ Resources:
         - ContainerName: !FindInMap [FrontendWebAppMap, !Ref EnvironmentType, ContainerName]
           ContainerPort: !FindInMap [FrontendWebAppMap, !Ref EnvironmentType, ContainerPort]
           TargetGroupArn:
-            Fn::ImportValue: !Sub ${StackPrefix}-Frontend-TargetGroup
-  
+#            Fn::ImportValue: !Sub ${StackPrefix}-Frontend-TargetGroup
+            Fn::ImportValue: !Sub ${StackPrefix}-PubALB-DefaultTargetGroup
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+#          AssignPublicIp: ENABLED
+          AssignPublicIp: DISABLED
+          SecurityGroups:
+            - Fn::ImportValue: !Sub ${StackPrefix}-PublicECSSecurityGroup-ID
+          Subnets:
+#            - Fn::ImportValue: !Sub ${StackPrefix}-PublicSubnetOneId
+#            - Fn::ImportValue: !Sub ${StackPrefix}-PublicSubnetTwoId
+            - Fn::ImportValue: !Sub ${StackPrefix}-PrivateSubnetOneId
+            - Fn::ImportValue: !Sub ${StackPrefix}-PrivateSubnetTwoId 
+      DeploymentController:
+        Type: !Ref DeployType
+#TODO: DeploymentConfiguration for Rolling Update
+#      DeploymentConfiguration:
+#        MaximumPercent: 0
+#        MinimumHealthyPercent: 0             
+      Tags:
+        - Key: Name
+          Value: !Sub ${StackPrefix}-FrontendWebAppService
   BackendService:
     Type: AWS::ECS::Service
     Properties:
@@ -76,7 +101,21 @@ Resources:
         - ContainerName: !FindInMap [BackendServiceMap, !Ref EnvironmentType, ContainerName]
           ContainerPort: !FindInMap [BackendServiceMap, !Ref EnvironmentType, ContainerPort]
           TargetGroupArn:
-            Fn::ImportValue: !Sub ${StackPrefix}-Backend-TargetGroup
+#            Fn::ImportValue: !Sub ${StackPrefix}-Backend-TargetGroup
+            Fn::ImportValue: !Sub ${StackPrefix}-PrivALB-DefaultTargetGroup
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED
+          SecurityGroups:
+            - Fn::ImportValue: !Sub ${StackPrefix}-PrivateECSSecurityGroup-ID
+          Subnets:
+            - Fn::ImportValue: !Sub ${StackPrefix}-PrivateSubnetOneId
+            - Fn::ImportValue: !Sub ${StackPrefix}-PrivateSubnetTwoId
+      DeploymentController:
+        Type: !Ref DeployType
+      Tags:
+        - Key: Name
+          Value: !Sub ${StackPrefix}-BackendService
 Outputs:
   FrontendWebAppService:
     Description: Frontend ECS Service
