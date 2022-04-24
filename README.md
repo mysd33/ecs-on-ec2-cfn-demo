@@ -76,7 +76,10 @@ aws cloudformation create-stack --stack-name ECS-TG-BG-Stack --template-body fil
 aws cloudformation validate-template --template-body file://cfn-ecs-cluster.yaml
 aws cloudformation create-stack --stack-name ECS-CLUSTER-Stack --template-body file://cfn-ecs-cluster.yaml
 ```
-
+* 必要に応じてキーペア名のパラメータ値を修正して使用
+  * 「Mappings:」の「FrontendClusterDefinitionMap:」の「KeyPairName:」
+  * 「Mappings:」の「BackendClusterDefinitionMap:」の「KeyPairName:」  
+    * 「myKeyPair」となっているところを自分のキーペア名に修正
 ### 7. ECSタスク定義の作成
 * タスク定義
 ```sh
@@ -109,6 +112,8 @@ aws cloudformation create-stack --stack-name ECS-SERVICE-Stack --template-body f
 aws cloudformation validate-template --template-body file://cfn-bastion-ec2.yaml
 aws cloudformation create-stack --stack-name Demo-Bastion-Stack --template-body file://cfn-bastion-ec2.yaml
 ```
+  * 必要に応じてキーペア名等のパラメータを指定
+    * 「--parameters ParameterKey=KeyPairName,ParameterValue=myKeyPair」
   * EC2にログインし、以下のコマンドを「curl http://(Private ALBのDNS名)/backend/api/v1/users」を入力するとバックエンドサービスAPのJSONレスポンスが返却
 
 * BFFアプリケーションの確認
