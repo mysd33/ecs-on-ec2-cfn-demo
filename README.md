@@ -26,8 +26,13 @@ aws cloudformation create-stack --stack-name BFF-CodeBuild-Stack --template-body
 aws cloudformation validate-template --template-body file://cfn-backend-codebuild.yaml
 aws cloudformation create-stack --stack-name Backend-CodeBuild-Stack --template-body file://cfn-backend-codebuild.yaml --capabilities CAPABILITY_IAM
 ```
-* 2つのCodeBuildプロジェクトが作成されるので、それぞれビルド実行し、ECRにDockerイメージをプッシュさせる
+* Artifact用のS3バケット名を変えるには、それぞれのcfnスタック作成時のコマンドでパラメータを指定する
+    * 「--parameters ParameterKey=ArtifactS3BucketName,ParameterValue=(バケット名)」
+
 * 本当は、CloudFormationテンプレートのCodeBuildのSorceTypeをCodePipelineにするが、いったんDockerイメージ作成して動作確認したいので、今はCodeCommitになっている。動いてはいるので保留。
+
+### 3. ECRへ最初のDockerイメージをプッシュ
+2つのCodeBuildプロジェクトが作成されるので、それぞれビルド実行し、ECRにDockerイメージをプッシュさせる
 
 ## ECS環境
 ### 1. VPCおよびサブネット、InternetGateway等の作成
@@ -133,6 +138,13 @@ aws cloudformation create-stack --stack-name Bff-CodePipeline-Stack --template-b
 aws cloudformation validate-template --template-body file://cfn-backend-codepipeline.yaml
 aws cloudformation create-stack --stack-name Backend-CodePipeline-Stack --template-body file://cfn-backend-codepipeline.yaml --capabilities CAPABILITY_IAM
 ```
+* Artifact用のS3バケット名を変えるには、それぞれのcfnスタック作成時のコマンドでパラメータを指定する
+    * 「--parameters ParameterKey=ArtifactS3BucketName,ParameterValue=(バケット名)」
+### 2. CodePipelineの確認
+  * CodePipelineの作成後、パイプラインが自動実行されるので、デプロイ成功することを確認する
+### 3. ソースコードの変更
+  * 何らかのソースコードの変更を加えて、CodeCommitにプッシュする
+  * CodePipelineのパイプラインが実行され、新しいAPがデプロイされることを確認する
 
 ## CD環境（標準のBlueGreenデプロイメントの場合）
 * BlueGreenデプロイメントの場合は、以下のコマンドを実行
@@ -144,7 +156,8 @@ aws cloudformation create-stack --stack-name Bff-CodeDeploy-Stack --template-bod
 aws cloudformation validate-template --template-body file://cfn-backend-codedeploy.yaml
 aws cloudformation create-stack --stack-name Backend-CodeDeploy-Stack --template-body file://cfn-backend-codedeploy.yaml --capabilities CAPABILITY_IAM
 ```
-  
+* Artifact用のS3バケット名を変えるには、それぞれのcfnスタック作成時のコマンドでパラメータを指定する
+    * 「--parameters ParameterKey=ArtifactS3BucketName,ParameterValue=(バケット名)」  
 ### 2. BlueGreenデプロイメント対応のCodePipelineの作成
 ```sh
 aws cloudformation validate-template --template-body file://cfn-bff-codepipeline-bg.yaml
@@ -153,19 +166,16 @@ aws cloudformation create-stack --stack-name Bff-CodePipeline-BG-Stack --templat
 aws cloudformation validate-template --template-body file://cfn-backend-codepipeline-bg.yaml
 aws cloudformation create-stack --stack-name Backend-CodePipeline-BG-Stack --template-body file://cfn-backend-codepipeline-bg.yaml --capabilities CAPABILITY_IAM
 ```
+* Artifact用のS3バケット名を変えるには、それぞれのcfnスタック作成時のコマンドでパラメータを指定する
+    * 「--parameters ParameterKey=ArtifactS3BucketName,ParameterValue=(バケット名)」
 ### 3. CodePipelineの確認
   * CodePipelineの作成後、パイプラインが自動実行されるので、デプロイ成功することを確認する
 ### 4. ソースコードの変更
   * 何らかのソースコードの変更を加えて、CodeCommitにプッシュする
   * CodePipelineのパイプラインが実行され、新しいAPがデプロイされることを確認する
-### 2. CodePipelineの確認
-  * CodePipelineの作成後、パイプラインが自動実行されるので、デプロイ成功することを確認する
 
-### 3. ソースコードの変更
-  * 何らかのソースコードの変更を加えて、CodeCommitにプッシュする
-  * CodePipelineのパイプラインが実行され、新しいAPがデプロイされることを確認する
 
-## CloudFormationコマンド文法メモ
+## （参考）CloudFormationコマンド文法メモ
 * スタックの新規作成
 ```sh
 aws cloudformation create-stack --stack-name myteststack --template-body file://cfn-ec2.yaml
