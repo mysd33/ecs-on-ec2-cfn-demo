@@ -7,6 +7,10 @@
   * システム構成図　BlueGreenデプロメント版
 ![システム構成図BlueGreenデプロイメント版](img/ecs-bluegreen-deployment.png)
 
+* ログの転送は現状、awslogsドライバを使ったCloudWatch Logsへの転送に対応しています
+  * TODO: いずれFireLensに対応したサンプルも追加したいです
+![ログドライバ](img/logdriver.png)
+
 ## CI環境
 * 別途、以下の2つのSpringBootAPのプロジェクトが以下のリポジトリ名でCodeCommitにある前提
   * backend-for-frontend
