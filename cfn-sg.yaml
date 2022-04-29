@@ -35,6 +35,24 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub ${StackPrefix}-Bastion-SG 
+
+# Security Group for VPC Endpoint  
+  VPCEndpointSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId:
+        Fn::ImportValue: !Sub ${StackPrefix}-VPC-ID
+      GroupDescription: Access from VPC Private Subnet Resources
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp:
+            Fn::ImportValue: !Sub ${StackPrefix}-VPC-CIDR
+      Tags:
+        - Key: Name
+          Value: !Sub ${StackPrefix}-VPE-SG
+
   #Security Group of Public ALB for BFF
   PublicALBSecurityGroup:
     Type: AWS::EC2::SecurityGroup
@@ -93,9 +111,7 @@ Resources:
           IpProtocol: tcp
           FromPort: 8080
           ToPort: 8080
-#          FromPort: 32768
-#          ToPort: 61000          
-          Description: Ingress from the public ALB for dynamic port mapping
+          Description: Ingress from the public ALB
       Tags:
         - Key: Name
           Value: !Sub ${StackPrefix}-PubECS-SG  
@@ -112,9 +128,7 @@ Resources:
           IpProtocol: tcp
           FromPort: 8080
           ToPort: 8080
-#          FromPort: 32768
-#          ToPort: 61000          
-          Description: Ingress from the private ALB for dynamic port mapping
+          Description: Ingress from the private ALB
       Tags:
         - Key: Name
           Value: !Sub ${StackPrefix}-PrivECS-SG  
@@ -126,6 +140,11 @@ Outputs:
     Value:  !Ref BastionSecurityGroup
     Export: 
       Name: !Sub ${StackPrefix}-BastionSecurityGroup-ID
+  VPCEndpointSecurityGroupID:
+    Description: VPCEndpointSecurityGroup ID
+    Value:  !Ref VPCEndpointSecurityGroup
+    Export: 
+      Name: !Sub ${StackPrefix}-VPCEndpointSecurityGroup-ID
   PublicALBSecurityGroupID:
     Description: PublicALBSecurityGroup ID
     Value:  !Ref PublicALBSecurityGroup

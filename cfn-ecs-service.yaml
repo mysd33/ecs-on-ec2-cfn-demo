@@ -127,6 +127,14 @@ Outputs:
     Value: !Sub ${StackPrefix}-FrontendWebAppService
     Export:
       Name: !Sub ${StackPrefix}-FrontendWebAppService-Name
+  FrontendWebAppServiceURI:
+    Description: Frontend Web Application URL
+    Value: 
+      Fn::Join: 
+        - ""
+        - - "http://"
+          - Fn::ImportValue: !Sub ${StackPrefix}-PubALB-DNS                
+          - "/backend-for-frontend/index.html"
   BackendService:
     Description: Backend ECS Service
     Value: !Ref BackendService
@@ -137,3 +145,11 @@ Outputs:
     Value: !Sub ${StackPrefix}-BackendService
     Export:
       Name: !Sub ${StackPrefix}-BackendService-Name
+  BackendServiceURI:
+    Description: Backend Service URL
+    Value: 
+      Fn::Join: 
+        - ""
+        - - "http://"
+          - Fn::ImportValue: !Sub ${StackPrefix}-PrivALB-DNS                
+          - "/backend/api/v1/users"

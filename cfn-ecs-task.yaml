@@ -23,7 +23,7 @@ Mappings:
       "ContainerImage" : "mynavi-sample-ecs-bff:latest"
       "ContainerPort" : 8080
       "ContainerMemory" : 1024
-      "Profile" : "production"
+      "Profile" : "production,log_container"
     Staging:
       "Memory" : 1024
       "Cpu" : 512
@@ -31,7 +31,7 @@ Mappings:
       "ContainerImage" : "mynavi-sample-ecs-bff:latest"
       "ContainerPort" : 8080      
       "ContainerMemory" : 1024
-      "Profile" : "staging"
+      "Profile" : "staging,log_container"
     Dev:
       "Memory" : 1024
       "Cpu" : 512
@@ -39,7 +39,7 @@ Mappings:
       "ContainerImage" : "mynavi-sample-ecs-bff:latest"
       "ContainerPort" : 8080
       "ContainerMemory" : 1024
-      "Profile" : "dev"
+      "Profile" : "dev,log_container"
   BackendServiceTaskDefinitionMap:
     Production:
       "Memory" : 1024
@@ -48,7 +48,7 @@ Mappings:
       "ContainerImage" : "mynavi-sample-ecs-backend:latest"
       "ContainerPort" : 8080
       "ContainerMemory" : 1024
-      "Profile" : "production"
+      "Profile" : "production,log_container"
     Staging:
       "Memory" : 1024
       "Cpu" : 512
@@ -56,7 +56,7 @@ Mappings:
       "ContainerImage" : "mynavi-sample-ecs-backend:latest"
       "ContainerPort" : 8080
       "ContainerMemory" : 1024
-      "Profile" : "staging"
+      "Profile" : "staging,log_container"
     Dev:
       "Memory" : 1024
       "Cpu" : 512
@@ -64,7 +64,7 @@ Mappings:
       "ContainerImage" : "mynavi-sample-ecs-backend:latest"
       "ContainerPort" : 8080
       "ContainerMemory" : 1024
-      "Profile" : "dev"
+      "Profile" : "dev,log_container"
 
 #Conditions: 
 

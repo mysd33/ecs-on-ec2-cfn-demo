@@ -60,4 +60,10 @@ Resources:
         Fn::ImportValue: !Sub ${StackPrefix}-PrivateSubnetTwoId
       RouteTableId: !Ref PrivateRouteTable  
 
-#Outputs:
+Outputs:
+  PrivateRouteTableId:
+    Description: Private Route Table ID
+    Value: !Ref PrivateRouteTable
+    Export: 
+      Name: !Sub ${StackPrefix}-PrivateRouteTableId
+
