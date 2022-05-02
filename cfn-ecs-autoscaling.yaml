@@ -1,0 +1,127 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: ECS Application AutoScaling Template for CloudFormation Demo. Depends on cfn-xxxx.yaml
+#Metadata: 
+
+Parameters: 
+  StackPrefix:
+    Description: Stack Resource Name Prefix
+    Type: String
+    Default: Demo
+  EnvironmentType:
+    Description: The environment type
+    Type: String
+    AllowedValues: ["Dev", "Staging", "Production"]
+    Default: Dev
+
+Mappings: 
+  BackendServiceMap:
+    Production:
+      "MaxCapacity": 2
+      "MinCapacity": 1
+      "CPUUtilization": 75
+    Staging:
+      "MaxCapacity": 2
+      "MinCapacity": 1
+      "CPUUtilization": 75
+    Dev:
+      "MaxCapacity": 2
+      "MinCapacity": 1
+      "CPUUtilization": 75
+  FrontendWebAppMap:
+    Production:
+      "MaxCapacity": 2
+      "MinCapacity": 1
+      "CPUUtilization": 75
+    Staging:
+      "MaxCapacity": 2
+      "MinCapacity": 1
+      "CPUUtilization": 75
+    Dev:
+      "MaxCapacity": 2
+      "MinCapacity": 1
+      "CPUUtilization": 75
+
+#Conditions: 
+
+Resources:
+  #TODO Review Required Actions of Policy Document
+  AutoscalingRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - application-autoscaling.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Path: /
+      Policies:
+        - PolicyName: service-autoscaling
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'application-autoscaling:*'
+                  - 'cloudwatch:DescribeAlarms'
+                  - 'cloudwatch:PutMetricAlarm'
+                  - 'ecs:DescribeServices'
+                  - 'ecs:UpdateService'
+                Resource: '*'
+# Application AutosScaling for Backend
+  BackendServiceScalingTarget:
+    Type: AWS::ApplicationAutoScaling::ScalableTarget
+    Properties:
+      MaxCapacity: !FindInMap [BackendServiceMap, !Ref EnvironmentType, MaxCapacity]
+      MinCapacity: !FindInMap [BackendServiceMap, !Ref EnvironmentType, MinCapacity]
+      ResourceId: !Join 
+        - ""
+        - - "service/"
+          - Fn::ImportValue: !Sub ${StackPrefix}-Backend-ECSCluster
+          - "/"
+          - Fn::ImportValue: !Sub ${StackPrefix}-BackendService-Name      
+      RoleARN: !GetAtt AutoscalingRole.Arn
+      ScalableDimension: ecs:service:DesiredCount
+      ServiceNamespace: ecs  
+  BackendServiceScalingPolicy:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    Properties:      
+      PolicyName: BackendTargetTrackingScalingPolicy
+      PolicyType: TargetTrackingScaling
+      ScalingTargetId: !Ref BackendServiceScalingTarget
+      TargetTrackingScalingPolicyConfiguration:        
+        TargetValue: !FindInMap [BackendServiceMap, !Ref EnvironmentType, CPUUtilization]
+        ScaleInCooldown: 60
+        ScaleOutCooldown: 60
+        PredefinedMetricSpecification:
+          PredefinedMetricType: ECSServiceAverageCPUUtilization
+# Application AutosScaling for BFF
+  FrontendServiceScalingTarget:
+    Type: AWS::ApplicationAutoScaling::ScalableTarget
+    Properties:
+      MaxCapacity: !FindInMap [FrontendWebAppMap, !Ref EnvironmentType, MaxCapacity]
+      MinCapacity: !FindInMap [FrontendWebAppMap, !Ref EnvironmentType, MinCapacity]
+      ResourceId: !Join 
+        - ""
+        - - "service/"
+          - Fn::ImportValue: !Sub ${StackPrefix}-Frontend-ECSCluster
+          - "/"
+          - Fn::ImportValue: !Sub ${StackPrefix}-FrontendWebAppService-Name      
+      RoleARN: !GetAtt AutoscalingRole.Arn
+      ScalableDimension: ecs:service:DesiredCount
+      ServiceNamespace: ecs  
+  FrontendServiceScalingPolicy:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    Properties:      
+      PolicyName: FrontendTargetTrackingScalingPolicy
+      PolicyType: TargetTrackingScaling
+      ScalingTargetId: !Ref FrontendServiceScalingTarget
+      TargetTrackingScalingPolicyConfiguration:        
+        TargetValue: !FindInMap [FrontendWebAppMap, !Ref EnvironmentType, CPUUtilization]
+        ScaleInCooldown: 60
+        ScaleOutCooldown: 60
+        PredefinedMetricSpecification:
+          PredefinedMetricType: ECSServiceAverageCPUUtilization
+
+#Outputs:

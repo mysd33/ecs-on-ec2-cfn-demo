@@ -17,6 +17,10 @@ Parameters:
     Type: String
     AllowedValues: ["ECS", "CODE_DEPLOY", "EXTERNAL"]
     Default: ECS
+  RollingUpdateMinimumHealthyPercent:    
+    Description: DeploymentConfiguration MinimumHealthyPercent for Rolling Update Quickly
+    Type: Number
+    Default: 100    
 
 Mappings:
   BackendServiceMap:
@@ -79,10 +83,11 @@ Resources:
             - Fn::ImportValue: !Sub ${StackPrefix}-PrivateSubnetTwoId 
       DeploymentController:
         Type: !Ref DeployType
-#TODO: DeploymentConfiguration for Rolling Update
-#      DeploymentConfiguration:
-#        MaximumPercent: 0
-#        MinimumHealthyPercent: 0             
+      DeploymentConfiguration:
+        DeploymentCircuitBreaker:
+          Enable: true
+          Rollback: true
+        MinimumHealthyPercent: !Ref RollingUpdateMinimumHealthyPercent
       Tags:
         - Key: Name
           Value: !Sub ${StackPrefix}-FrontendWebAppService
@@ -113,6 +118,11 @@ Resources:
             - Fn::ImportValue: !Sub ${StackPrefix}-PrivateSubnetTwoId
       DeploymentController:
         Type: !Ref DeployType
+      DeploymentConfiguration:
+        DeploymentCircuitBreaker:
+          Enable: true
+          Rollback: true
+        MinimumHealthyPercent: !Ref RollingUpdateMinimumHealthyPercent        
       Tags:
         - Key: Name
           Value: !Sub ${StackPrefix}-BackendService

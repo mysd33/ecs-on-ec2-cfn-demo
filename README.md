@@ -1,15 +1,18 @@
 # SpringBoot APをECS on EC2で動作させCode系でCI/CDするCloudFormationサンプルテンプレート
 
 ## 構成
-* CDは標準のローリングアップデートとBlueGreenデプロイメントの両方に対応しています
+* CDは標準のローリングアップデートとBlueGreenデプロイメントの両方に対応している。
   * システム構成図　ローリングアップデート版
 ![システム構成図ローリングアップデート版](img/ecs-rolling-update.png)
   * システム構成図　BlueGreenデプロメント版
-![システム構成図BlueGreenデプロイメント版](img/ecs-bluegreen-deployment.png)  
+![システム構成図BlueGreenデプロイメント版](img/ecs-bluegreen-deployment.png)
 
-* ログの転送は現状、awslogsドライバを使ったCloudWatch Logsへの転送に対応しています
+* ログの転送は現状、awslogsドライバを使ったCloudWatch Logsへの転送に対応している。
   * TODO: いずれFireLensに対応したサンプルも追加したいです
 ![ログドライバ](img/logdriver.png)
+
+* オートスケーリングは、平均CPU使用率のターゲット追跡スケーリングポリシーによる例に対応している。
+![オートスケーリング](img/autoscaling.png)
 
 ## CI環境
 * 別途、以下の2つのSpringBootAPのプロジェクトが以下のリポジトリ名でCodeCommitにある前提
@@ -112,6 +115,8 @@ aws cloudformation create-stack --stack-name ECS-TASK-Stack --template-body file
 aws cloudformation validate-template --template-body file://cfn-ecs-service.yaml
 aws cloudformation create-stack --stack-name ECS-SERVICE-Stack --template-body file://cfn-ecs-service.yaml
 ```
+* 以下のパラメータを0にするとMinimumHealthyPercentを0%になるので、1,2分気持ちローリングアップデートの時間が短くなる
+  * 「--parameters ParameterKey=RollingUpdateMinimumHealthyPercent,ParameterValue=0」
 ### 9-2. ECSサービスの実行（BlueGreenデプロイメントの場合）
 * BlueGreenデプロイメントの場合は以下のパラメータを指定して起動
 ```sh
@@ -141,6 +146,28 @@ aws cloudformation create-stack --stack-name Demo-Bastion-Stack --template-body 
   * /ecs/logs/Demo-backend-ecs-group
   * /ecs/logs/Demo-bff-ecs-group
 
+### 11. Application AutoScalingの設定
+* 以下のコマンドで、ターゲット追跡スケーリングポリシーでオートスケーリング設定
+```sh
+aws cloudformation validate-template --template-body file://cfn-ecs-autoscaling.yaml
+aws cloudformation create-stack --stack-name ECS-AutoScaling-Stack --template-body file://cfn-ecs-autoscaling.yaml  --capabilities CAPABILITY_IAM
+```
+* BastionのEC2から、ApacheBench (ab) ユーティリティを使用して、ロードバランサーに短期間に大量のHTTPリクエストを送信
+  * abコマンドのインストール
+```sh
+sudo yum install httpd-tools
+```
+  * 以下のいずれかのabコマンドを実行
+```sh
+ab -n 1000000 -c 1000 http://(Private ALBのDNS名)/backend/api/v1/users
+```
+```sh
+ab -n 1000000 -c 1000 http://(Public ALBのDNS名).ap-northeast-1.elb.
+amazonaws.com/backend-for-frontend/index.html
+```
+* 対象のECSサービスに関するCPU使用率に関するCloudWatchアラームが出ていることを確認
+* 対象のECSサービスがスケールアウトされ、1タスク追加され2タスクになっていることを確認
+* abコマンドが終了し、しばらくたつと、対象のECSサービスがスケールインされ、1タスクに戻っていることを確認
 ## CD環境（標準のローリングアップデートの場合）
 * ローリングアップデートの場合は、以下のコマンドを実行
 ### 1. ローリングアップデート対応のCodePipelineの作成
