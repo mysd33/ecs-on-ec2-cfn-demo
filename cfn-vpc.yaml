@@ -112,7 +112,7 @@ Resources:
       VpcId: !Ref VPC
       InternetGatewayId: !Ref InternetGateway
 
-  #RouteTable
+  #Public RouteTable
   PublicRouteTable:
     Type: AWS::EC2::RouteTable
     Properties:
@@ -137,7 +137,24 @@ Resources:
     Properties:
       SubnetId: !Ref PublicSubnetTwo
       RouteTableId: !Ref PublicRouteTable  
-
+  #Private Route Table
+  PrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC        
+      Tags:
+        - Key: Name
+          Value: !Sub ${StackPrefix}-PrivRT
+  PrivateSubnetOneRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnetOne
+      RouteTableId: !Ref PrivateRouteTable
+  PrivateSubnetTwoRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnetTwo
+      RouteTableId: !Ref PrivateRouteTable  
 Outputs:
   VPCId:
     Description: VPC ID
@@ -169,3 +186,8 @@ Outputs:
     Value: !Ref PrivateSubnetTwo
     Export:
       Name: !Sub ${StackPrefix}-PrivateSubnetTwoId
+  PrivateRouteTableId:
+    Description: Private Route Table ID
+    Value: !Ref PrivateRouteTable
+    Export: 
+      Name: !Sub ${StackPrefix}-PrivateRouteTableId

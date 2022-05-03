@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: CodeDeploy Template for CloudFormation Demo. Depends on cfn-alb.yaml, cfn-tg-bg.yaml, cfn-ecs-cluster.yaml, cfn-ecs-task.yaml, cfn-ecs-service.yaml
+Description: CodeDeploy Template for CloudFormation Demo. Depends on cfn-iam.yaml, cfn-alb.yaml, cfn-tg-bg.yaml, cfn-ecs-cluster.yaml, cfn-ecs-task.yaml, cfn-ecs-service.yaml
 #Metadata: 
 
 Parameters: 
@@ -13,7 +13,7 @@ Parameters:
 #Conditions: 
 
 Resources:
-#Code Deploy Application
+  #Code Deploy Application
   BackendCodeDeployApplication: 
     Type: AWS::CodeDeploy::Application 
     Properties:
@@ -22,24 +22,7 @@ Resources:
         - Key: Name
           Value: !Sub ${StackPrefix}-BackendCodeDeployApplication
 
-#IAM Role for CodeDeploy Service Role
-  CodeDeployServiceRole:
-    Type: AWS::IAM::Role
-    Properties:
-      Path: /
-      AssumeRolePolicyDocument:
-        Statement:
-          - Action: sts:AssumeRole
-            Effect: Allow
-            Principal:
-              Service: codedeploy.amazonaws.com
-      ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/AWSCodeDeployRoleForECS
-      Tags:
-        - Key: Name
-          Value: !Sub ${StackPrefix}-BackendCodeDeployServiceRole
-
-#Code Deploy Deployment Group
+  #Code Deploy Deployment Group
   BackendCodeDeployDeploymentGroup:
     Type: AWS::CodeDeploy::DeploymentGroup
     Properties: 
@@ -71,7 +54,8 @@ Resources:
                   Fn::ImportValue: !Sub ${StackPrefix}-PrivALB-DefaultTargetGroupName
               - Name:
                   Fn::ImportValue: !Sub ${StackPrefix}-PrivALB-TargetGroup2Name
-      ServiceRoleArn: !GetAtt CodeDeployServiceRole.Arn
+      ServiceRoleArn:
+        Fn::ImportValue: !Sub ${StackPrefix}-CodeDeployServiceRole-Arn
       Tags:
         - Key: Name
           Value: !Sub ${StackPrefix}-BackendCodeDeployDeploymentGroup

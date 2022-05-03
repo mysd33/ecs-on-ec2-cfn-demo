@@ -24,69 +24,7 @@ Parameters:
 
 #Conditions: 
 
-Resources: 
-  #IAM Role
-  CodeBuildRole:
-    Type: AWS::IAM::Role
-    Properties:
-      Path: /service-role/
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service:
-                - codebuild.amazonaws.com
-            Action:
-              - 'sts:AssumeRole'
-  
-  #IAM Policy
-  CodeBuildPolicy:
-    Type: AWS::IAM::Policy
-    Properties:
-      PolicyDocument:
-        Statement:
-        - Action:
-          - logs:CreateLogGroup
-          - logs:CreateLogStream
-          - logs:PutLogEvents
-          Effect: Allow
-          Resource:
-          - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${ProjectName}
-          - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${ProjectName}:*          
-        - Action:
-          - codecommit:GitPull
-          Effect: Allow
-          Resource:          
-            - !Sub arn:aws:codecommit:${AWS::Region}:${AWS::AccountId}:${RepositoryName}
-        - Action:
-          - ecr:BatchCheckLayerAvailability
-          - ecr:CompleteLayerUpload
-          - ecr:GetAuthorizationToken
-          - ecr:InitiateLayerUpload
-          - ecr:PutImage
-          - ecr:UploadLayerPart
-          Effect: Allow
-          Resource: "*"            
-        - Action:
-          - ecs:DescribeTaskDefinition
-          Effect: Allow
-          Resource: "*"                  
-        - Action:
-          - s3:PutObject
-          - s3:GetObject
-          - s3:GetObjectVersion
-          - s3:GetBucketAcl
-          - s3:GetBucketLocation
-          Effect: Allow
-          Resource: 
-            - !Sub arn:aws:s3:::${ArtifactS3BucketName}
-            - !Sub arn:aws:s3:::${ArtifactS3BucketName}/*      
-      PolicyName: !Sub ${StackPrefix}-CodeBuildPolicy
-      Roles:
-      - !Ref CodeBuildRole
-  
-  #CodeBuild  
+Resources:
   CodeBuildProject:
     Type: AWS::CodeBuild::Project
     Properties:      
@@ -110,7 +48,8 @@ Resources:
           - Name: REPOSITORY_URI
             Value:
               Fn::ImportValue: !Sub ${StackPrefix}-BackendECRRepositoryUri
-      ServiceRole: !GetAtt CodeBuildRole.Arn          
+      ServiceRole:
+        Fn::ImportValue: !Sub ${StackPrefix}-CodeBuildRole-Arn
       TimeoutInMinutes: 10
       #TODO: Cache for Maven don't work?
       Cache:

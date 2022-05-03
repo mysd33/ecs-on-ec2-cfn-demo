@@ -1,60 +1,79 @@
 # SpringBoot APをECS on EC2で動作させCode系でCI/CDするCloudFormationサンプルテンプレート
 
 ## 構成
-* CDは標準のローリングアップデートとBlueGreenデプロイメントの両方に対応している。
+* CDは標準のローリングアップデートとBlueGreenデプロイメントの両方に対応しており、以下のいずれか２つの構成が構築できる。
   * システム構成図　ローリングアップデート版
 ![システム構成図ローリングアップデート版](img/ecs-rolling-update.png)
   * システム構成図　BlueGreenデプロメント版
 ![システム構成図BlueGreenデプロイメント版](img/ecs-bluegreen-deployment.png)
 
-* ログの転送は現状、awslogsドライバを使ったCloudWatch Logsへの転送に対応している。
-  * TODO: いずれFireLensに対応したサンプルも追加したいです
+* メトリックスのモニタリング
+  * CloudWatch Container Insightsは有効化し、各メトリックスを可視化。
+* ログの転送
+  * 現状、awslogsドライバを使ったCloudWatch Logsへの転送に対応。
+  * TBD: FireLensに対応したサンプルも追加検討中。
 ![ログドライバ](img/logdriver.png)
 
-* オートスケーリングは、平均CPU使用率のターゲット追跡スケーリングポリシーによる例に対応している。
+* オートスケーリング
+  * 平均CPU使用率のターゲット追跡スケーリングポリシーによる例に対応している。
 ![オートスケーリング](img/autoscaling.png)
 
+## 事前準備
+* CodePipeline、CodeBuildのArtifact用のS3バケットを作成しておく
+  * 後続の手順で、バケット名を変更するパラメータがあるところで指定
+## IAM
+### 1. IAMの作成
+```sh
+aws cloudformation validate-template --template-body file://cfn-iam.yaml
+aws cloudformation create-stack --stack-name ECS-IAM-Stack --template-body file://cfn-iam.yaml --capabilities CAPABILITY_IAM
+```
+* CodePipeline、CodeBuildのArtifact用のS3バケット名を変えるには、それぞれのcnスタック作成時のコマンドでパラメータを指定する
+    * 「--parameters ParameterKey=ArtifactS3BucketName,ParameterValue=(バケット名)」
+
+* TBD
+  * IAMポリシーの記載は精査中
+  * RDB対応時は、タスクへのIAMロールの付与のため修正が必要
+
 ## CI環境
+## 1. アプリケーションのCodeCommit環境
 * 別途、以下の2つのSpringBootAPのプロジェクトが以下のリポジトリ名でCodeCommitにある前提
   * backend-for-frontend
     * BFFのAP
   * backend
     * BackendのAP
 
-### 1. ECRの作成
+### 2. ECRの作成
 ```sh
 aws cloudformation validate-template --template-body file://cfn-ecr.yaml
 aws cloudformation create-stack --stack-name ECR-Stack --template-body file://cfn-ecr.yaml
 ```
-### 2. CodeBuildのプロジェクト作成
+### 3. CodeBuildのプロジェクト作成
 ```sh
 aws cloudformation validate-template --template-body file://cfn-bff-codebuild.yaml
-aws cloudformation create-stack --stack-name BFF-CodeBuild-Stack --template-body file://cfn-bff-codebuild.yaml --capabilities CAPABILITY_IAM
+aws cloudformation create-stack --stack-name BFF-CodeBuild-Stack --template-body file://cfn-bff-codebuild.yaml
 aws cloudformation validate-template --template-body file://cfn-backend-codebuild.yaml
-aws cloudformation create-stack --stack-name Backend-CodeBuild-Stack --template-body file://cfn-backend-codebuild.yaml --capabilities CAPABILITY_IAM
+aws cloudformation create-stack --stack-name Backend-CodeBuild-Stack --template-body file://cfn-backend-codebuild.yaml
 ```
 * Artifact用のS3バケット名を変えるには、それぞれのcfnスタック作成時のコマンドでパラメータを指定する
     * 「--parameters ParameterKey=ArtifactS3BucketName,ParameterValue=(バケット名)」
 
 * 本当は、CloudFormationテンプレートのCodeBuildのSorceTypeをCodePipelineにするが、いったんDockerイメージ作成して動作確認したいので、今はCodeCommitになっている。動いてはいるので保留。
 
-### 3. ECRへ最初のDockerイメージをプッシュ
-2つのCodeBuildプロジェクトが作成されるので、それぞれビルド実行し、ECRにDockerイメージをプッシュさせる
+* TBD: Mavenのカスタムローカルキャッシュによるビルド時間短縮がうまく動いていない
+  * ひょっとしたら、ローカルキャッシュではなくS3でないとうまくいかない？
+    * https://docs.aws.amazon.com/ja_jp/codebuild/latest/userguide/build-caching.html  
+    * https://aws.amazon.com/jp/blogs/devops/how-to-enable-caching-for-aws-codebuild/
 
-## ECS環境
-### 1. VPCおよびサブネット、InternetGateway等の作成
+### 3. ECRへ最初のDockerイメージをプッシュ
+2つのCodeBuildプロジェクトが作成されるので、それぞれビルド実行し、ECRにDockerイメージをプッシュさせる。
+
+## ネットワーク環境
+### 1. VPCおよびサブネット、Publicサブネット向けInternetGateway等の作成
 ```sh
 aws cloudformation validate-template --template-body file://cfn-vpc.yaml
 aws cloudformation create-stack --stack-name ECS-VPC-Stack --template-body file://cfn-vpc.yaml
 ```
-
-### 2. NAT Gatewayの作成とプライベートサブネットのルートテーブル更新
-```sh
-aws cloudformation validate-template --template-body file://cfn-ngw.yaml
-aws cloudformation create-stack --stack-name ECS-NATGW-Stack --template-body file://cfn-ngw.yaml
-```
-
-### 3. Security Groupの作成
+### 2. Security Groupの作成
 ```sh
 aws cloudformation validate-template --template-body file://cfn-sg.yaml
 aws cloudformation create-stack --stack-name ECS-SG-Stack --template-body file://cfn-sg.yaml
@@ -62,19 +81,25 @@ aws cloudformation create-stack --stack-name ECS-SG-Stack --template-body file:/
 * 必要に応じて、端末の接続元IPアドレス等のパラメータを指定
     * 「--parameters ParameterKey=TerminalCidrIP,ParameterValue=X.X.X.X/X」
 
-### 4. VPC Endpointの作成
+### 3. VPC Endpointの作成とプライベートサブネットのルートテーブル更新
 ```sh
 aws cloudformation validate-template --template-body file://cfn-vpe.yaml
 aws cloudformation create-stack --stack-name ECS-VPE-Stack --template-body file://cfn-vpe.yaml
 ```
-### 5. IAMの作成
+### 4.（作成任意）NAT Gatewayの作成とプライベートサブネットのルートテーブル更新
+* 本手順では、ECRのイメージ転送量等にかかるNAT Gatewayのコストが全体の割合からすると大きく節約のためVPC Endpointを作成するので、NAT Gatewayは通常不要。
+* 本手順をカスタマイズして、VPC Endpoint未作成のリソースアクセスに使用したい場合に以下を追加実行すればよい。
 ```sh
-aws cloudformation validate-template --template-body file://cfn-iam.yaml
-aws cloudformation create-stack --stack-name ECS-IAM-Stack --template-body file://cfn-iam.yaml --capabilities CAPABILITY_IAM
+aws cloudformation validate-template --template-body file://cfn-ngw.yaml
+aws cloudformation create-stack --stack-name ECS-NATGW-Stack --template-body file://cfn-ngw.yaml
 ```
 
-### 6. ALBの作成
-* ALB
+## DB環境
+* TBD:　今後Aurora等のRDBリソースのサンプル作成を検討
+
+## ECS環境
+### 1. ALBの作成
+* ECSの前方で動作するALBとデフォルトのTarget Group等を作成
 ```sh
 aws cloudformation validate-template --template-body file://cfn-alb.yaml
 aws cloudformation create-stack --stack-name ECS-ALB-Stack --template-body file://cfn-alb.yaml
@@ -84,12 +109,13 @@ aws cloudformation create-stack --stack-name ECS-ALB-Stack --template-body file:
 aws cloudformation validate-template --template-body file://cfn-tg-bg.yaml
 aws cloudformation create-stack --stack-name ECS-TG-BG-Stack --template-body file://cfn-tg-bg.yaml
 ```
+* TBD: バックエンドサービスをALBではなく、CloudMapによるサービスディスカバリを使ったサンプル作成を検討
 
 * ~~手順削除：ListenerRuleを使ったTargetGroupの設定~~
 ~~aws cloudformation validate-template --template-body file://cfn-tg.yaml~~
 ~~aws cloudformation create-stack --stack-name ECS-TG-Stack --template-body file://cfn-tg.yaml~~
 
-### 7. ECSクラスタの作成
+### 2. ECSクラスタの作成
 ```sh
 aws cloudformation validate-template --template-body file://cfn-ecs-cluster.yaml
 aws cloudformation create-stack --stack-name ECS-CLUSTER-Stack --template-body file://cfn-ecs-cluster.yaml
@@ -98,34 +124,28 @@ aws cloudformation create-stack --stack-name ECS-CLUSTER-Stack --template-body f
   * 「Mappings:」の「FrontendClusterDefinitionMap:」の「KeyPairName:」
   * 「Mappings:」の「BackendClusterDefinitionMap:」の「KeyPairName:」  
     * 「myKeyPair」となっているところを自分のキーペア名に修正
-### 8. ECSタスク定義の作成
+### 3. ECSタスク定義の作成
 * タスク定義
 ```sh
 aws cloudformation validate-template --template-body file://cfn-ecs-task.yaml
 aws cloudformation create-stack --stack-name ECS-TASK-Stack --template-body file://cfn-ecs-task.yaml
 ```
 
-* タスクへのIAMロールの付与
-  * TBD: RDS,DynamoDBへのアクセスの必要に応じて
-    * cfn-iamの.yamlの修正が必要
-
-### 9-1. ECSサービスの実行（ローリングアップデートの場合）
+### 4-1. ECSサービスの実行（ローリングアップデートの場合）
 * ローリングアップデートの場合は以下を実行
 ```sh
 aws cloudformation validate-template --template-body file://cfn-ecs-service.yaml
 aws cloudformation create-stack --stack-name ECS-SERVICE-Stack --template-body file://cfn-ecs-service.yaml
 ```
-* 以下のパラメータを0にするとMinimumHealthyPercentを0%になるので、1,2分気持ちローリングアップデートの時間が短くなる
-  * 「--parameters ParameterKey=RollingUpdateMinimumHealthyPercent,ParameterValue=0」
-### 9-2. ECSサービスの実行（BlueGreenデプロイメントの場合）
+* パラメータMinimumHealthyPercentを0%にしていて、1,2分気持ちローリングアップデートの時間が短くなるようになっている
+### 8-2. ECSサービスの実行（BlueGreenデプロイメントの場合）
 * BlueGreenデプロイメントの場合は以下のパラメータを指定して起動
 ```sh
 aws cloudformation validate-template --template-body file://cfn-ecs-service.yaml
 aws cloudformation create-stack --stack-name ECS-SERVICE-Stack --template-body file://cfn-ecs-service.yaml --parameters ParameterKey=DeployType,ParameterValue=CODE_DEPLOY
 ```
 
-
-### 10. APの実行確認
+### 9. APの実行確認
 * Backendアプリケーションの確認  
   * VPCのパブリックサブネット上にBationのEC2を起動
 ```sh
@@ -146,12 +166,13 @@ aws cloudformation create-stack --stack-name Demo-Bastion-Stack --template-body 
   * /ecs/logs/Demo-backend-ecs-group
   * /ecs/logs/Demo-bff-ecs-group
 
-### 11. Application AutoScalingの設定
+### 10. Application AutoScalingの設定
 * 以下のコマンドで、ターゲット追跡スケーリングポリシーでオートスケーリング設定
 ```sh
 aws cloudformation validate-template --template-body file://cfn-ecs-autoscaling.yaml
-aws cloudformation create-stack --stack-name ECS-AutoScaling-Stack --template-body file://cfn-ecs-autoscaling.yaml  --capabilities CAPABILITY_IAM
+aws cloudformation create-stack --stack-name ECS-AutoScaling-Stack --template-body file://cfn-ecs-autoscaling.yaml
 ```
+
 * BastionのEC2から、ApacheBench (ab) ユーティリティを使用して、ロードバランサーに短期間に大量のHTTPリクエストを送信
   * abコマンドのインストール
 ```sh
@@ -173,11 +194,12 @@ amazonaws.com/backend-for-frontend/index.html
 ### 1. ローリングアップデート対応のCodePipelineの作成
 ```sh
 aws cloudformation validate-template --template-body file://cfn-bff-codepipeline.yaml
-aws cloudformation create-stack --stack-name Bff-CodePipeline-Stack --template-body file://cfn-bff-codepipeline.yaml --capabilities CAPABILITY_IAM
+aws cloudformation create-stack --stack-name Bff-CodePipeline-Stack --template-body file://cfn-bff-codepipeline.yaml
 
 aws cloudformation validate-template --template-body file://cfn-backend-codepipeline.yaml
-aws cloudformation create-stack --stack-name Backend-CodePipeline-Stack --template-body file://cfn-backend-codepipeline.yaml --capabilities CAPABILITY_IAM
+aws cloudformation create-stack --stack-name Backend-CodePipeline-Stack --template-body file://cfn-backend-codepipeline.yaml
 ```
+
 * Artifact用のS3バケット名を変えるには、それぞれのcfnスタック作成時のコマンドでパラメータを指定する
     * 「--parameters ParameterKey=ArtifactS3BucketName,ParameterValue=(バケット名)」
 ### 2. CodePipelineの確認
@@ -191,21 +213,23 @@ aws cloudformation create-stack --stack-name Backend-CodePipeline-Stack --templa
 ### 1. CodeDeployの作成
 ```sh
 aws cloudformation validate-template --template-body file://cfn-bff-codedeploy.yaml
-aws cloudformation create-stack --stack-name Bff-CodeDeploy-Stack --template-body file://cfn-bff-codedeploy.yaml --capabilities CAPABILITY_IAM
+aws cloudformation create-stack --stack-name Bff-CodeDeploy-Stack --template-body file://cfn-bff-codedeploy.yaml
 
 aws cloudformation validate-template --template-body file://cfn-backend-codedeploy.yaml
-aws cloudformation create-stack --stack-name Backend-CodeDeploy-Stack --template-body file://cfn-backend-codedeploy.yaml --capabilities CAPABILITY_IAM
+aws cloudformation create-stack --stack-name Backend-CodeDeploy-Stack --template-body file://cfn-backend-codedeploy.yaml
 ```
+
 * Artifact用のS3バケット名を変えるには、それぞれのcfnスタック作成時のコマンドでパラメータを指定する
     * 「--parameters ParameterKey=ArtifactS3BucketName,ParameterValue=(バケット名)」  
 ### 2. BlueGreenデプロイメント対応のCodePipelineの作成
 ```sh
 aws cloudformation validate-template --template-body file://cfn-bff-codepipeline-bg.yaml
-aws cloudformation create-stack --stack-name Bff-CodePipeline-BG-Stack --template-body file://cfn-bff-codepipeline-bg.yaml --capabilities CAPABILITY_IAM
+aws cloudformation create-stack --stack-name Bff-CodePipeline-BG-Stack --template-body file://cfn-bff-codepipeline-bg.yaml
 
 aws cloudformation validate-template --template-body file://cfn-backend-codepipeline-bg.yaml
-aws cloudformation create-stack --stack-name Backend-CodePipeline-BG-Stack --template-body file://cfn-backend-codepipeline-bg.yaml --capabilities CAPABILITY_IAM
+aws cloudformation create-stack --stack-name Backend-CodePipeline-BG-Stack --template-body file://cfn-backend-codepipeline-bg.yaml
 ```
+
 * Artifact用のS3バケット名を変えるには、それぞれのcfnスタック作成時のコマンドでパラメータを指定する
     * 「--parameters ParameterKey=ArtifactS3BucketName,ParameterValue=(バケット名)」
 ### 3. CodePipelineの確認
@@ -213,7 +237,6 @@ aws cloudformation create-stack --stack-name Backend-CodePipeline-BG-Stack --tem
 ### 4. ソースコードの変更
   * 何らかのソースコードの変更を加えて、CodeCommitにプッシュする
   * CodePipelineのパイプラインが実行され、新しいAPがデプロイされることを確認する
-
 
 ## （参考）CloudFormationコマンド文法メモ
 * スタックの新規作成

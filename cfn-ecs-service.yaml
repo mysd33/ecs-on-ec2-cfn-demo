@@ -20,7 +20,7 @@ Parameters:
   RollingUpdateMinimumHealthyPercent:    
     Description: DeploymentConfiguration MinimumHealthyPercent for Rolling Update Quickly
     Type: Number
-    Default: 100    
+    Default: 0    
 
 Mappings:
   BackendServiceMap:
@@ -50,7 +50,10 @@ Mappings:
       "ContainerName" : "ecsdemo-frontend-app"
       "ContainerPort" : 8080 
 
-#Conditions: 
+Conditions: 
+  IsRollingUpdate: !Equals 
+    - !Ref DeployType
+    - ECS
 
 Resources: 
   FrontendWebAppService:
@@ -83,11 +86,13 @@ Resources:
             - Fn::ImportValue: !Sub ${StackPrefix}-PrivateSubnetTwoId 
       DeploymentController:
         Type: !Ref DeployType
-      DeploymentConfiguration:
-        DeploymentCircuitBreaker:
-          Enable: true
-          Rollback: true
-        MinimumHealthyPercent: !Ref RollingUpdateMinimumHealthyPercent
+      DeploymentConfiguration: !If
+        - IsRollingUpdate
+        - DeploymentCircuitBreaker:         
+            Enable: true
+            Rollback: true
+          MinimumHealthyPercent: !Ref RollingUpdateMinimumHealthyPercent
+        - !Ref AWS::NoValue
       Tags:
         - Key: Name
           Value: !Sub ${StackPrefix}-FrontendWebAppService
@@ -118,14 +123,17 @@ Resources:
             - Fn::ImportValue: !Sub ${StackPrefix}-PrivateSubnetTwoId
       DeploymentController:
         Type: !Ref DeployType
-      DeploymentConfiguration:
-        DeploymentCircuitBreaker:
-          Enable: true
-          Rollback: true
-        MinimumHealthyPercent: !Ref RollingUpdateMinimumHealthyPercent        
+      DeploymentConfiguration: !If
+        - IsRollingUpdate
+        - DeploymentCircuitBreaker:         
+            Enable: true
+            Rollback: true
+          MinimumHealthyPercent: !Ref RollingUpdateMinimumHealthyPercent
+        - !Ref AWS::NoValue
       Tags:
         - Key: Name
           Value: !Sub ${StackPrefix}-BackendService
+
 Outputs:
   FrontendWebAppService:
     Description: Frontend ECS Service

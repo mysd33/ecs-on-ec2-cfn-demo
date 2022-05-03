@@ -12,7 +12,7 @@ Parameters:
 
 #Conditions: 
 
-Resources: 
+Resources:
 # VPC Endpoint for S3
   S3VPCEndpoint:
     Type: AWS::EC2::VPCEndpoint
@@ -39,7 +39,22 @@ Resources:
         - Fn::ImportValue: !Sub ${StackPrefix}-VPCEndpointSecurityGroup-ID                      
       PrivateDnsEnabled: true
 
-# VPC Endpoint for ECS (docker pull from ECS on EC2 to ECR)
+# CloudFormation VPC Endpoint for ECS on EC2 (cfn-signal from ECS on EC2 to Cloudformation)
+  CfnVPCEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:      
+      VpcEndpointType: Interface
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.cloudformation
+      SubnetIds:
+        - Fn::ImportValue: !Sub ${StackPrefix}-PrivateSubnetOneId
+        - Fn::ImportValue: !Sub ${StackPrefix}-PrivateSubnetTwoId
+      VpcId: 
+        Fn::ImportValue: !Sub ${StackPrefix}-VPC-ID          
+      SecurityGroupIds: 
+        - Fn::ImportValue: !Sub ${StackPrefix}-VPCEndpointSecurityGroup-ID        
+      PrivateDnsEnabled: true
+
+# ECS VPC Endpoints for ECS on EC2 (docker pull from ECS on EC2 to ECR)
   ECSAgentVPCEndpoint:
     Type: AWS::EC2::VPCEndpoint
     Properties:      
@@ -82,7 +97,7 @@ Resources:
         - Fn::ImportValue: !Sub ${StackPrefix}-VPCEndpointSecurityGroup-ID        
       PrivateDnsEnabled: true
 
-# VPC Endpoint for ECR
+# ECR VPC Endpoint
   ECRApiVPCEndpoint:
     Type: AWS::EC2::VPCEndpoint
     Properties:      
