@@ -17,6 +17,7 @@
 * オートスケーリング
   * 平均CPU使用率のターゲット追跡スケーリングポリシーによる例に対応している。
 ![オートスケーリング](img/autoscaling.png)
+  * TBD: AutoScalingのカスタムキャパシティプロバイダによるクラスタオートスケーリングのサンプル追加検討中。
 
 ## 事前準備
 * CodePipeline、CodeBuildのArtifact用のS3バケットを作成しておく
