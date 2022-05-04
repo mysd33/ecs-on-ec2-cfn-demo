@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: CodeBuild Template for CloudFormation Demo. Depends on cfn-ecr.yaml
+Description: CodeBuild Template for CloudFormation Demo. Depends on cfn-iam.yaml, cfn-ecr.yaml
 #Metadata: 
 
 Parameters: 

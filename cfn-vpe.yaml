@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: VPCEndpoint Template for CloudFormation Demo. Depends on cfn-vpc.yaml, cfn-ngw.yaml, cfn-sg.yaml.
+Description: VPCEndpoint Template for CloudFormation Demo. Depends on cfn-vpc.yaml, cfn-sg.yaml.
 #Metadata: 
 
 Parameters: 
