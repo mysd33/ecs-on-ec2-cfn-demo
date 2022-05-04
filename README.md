@@ -6,12 +6,12 @@
 ![システム構成図ローリングアップデート版](img/ecs-rolling-update.png)
   * システム構成図　BlueGreenデプロメント版
 ![システム構成図BlueGreenデプロイメント版](img/ecs-bluegreen-deployment.png)
+  * なお、図は、ECSからのAPログ転送にCloudWatch Logs（awslogsドライバ）を利用した場合の例を示している
 
 * メトリックスのモニタリング
   * CloudWatch Container Insightsは有効化し、各メトリックスを可視化。
 * ログの転送
-  * 現状、awslogsドライバを使ったCloudWatch Logsへの転送に対応。
-  * TBD: FireLensに対応したサンプルも追加検討中。
+  * awslogsドライバを使ったCloudWatch Logsへのログ転送とFireLens+Fluent Bitによるログ転送に対応
 ![ログドライバ](img/logdriver.png)
 
 * オートスケーリング
@@ -21,6 +21,7 @@
 
 ## 事前準備
 * CodePipeline、CodeBuildのArtifact用のS3バケットを作成しておく
+* FireLensを利用する場合はログ出力のS3バケットも作成しておく
   * 後続の手順で、バケット名を変更するパラメータがあるところで指定
 ## IAM
 ### 1. IAMの作成
@@ -33,7 +34,7 @@ aws cloudformation create-stack --stack-name ECS-IAM-Stack --template-body file:
 
 * TBD
   * IAMポリシーの記載は精査中
-  * RDB対応時は、タスクへのIAMロールの付与のため修正が必要
+  * RDB対応時は、ECSタスクへのIAMロールの付与のため修正が必要
 
 ## CI環境
 ## 1. アプリケーションのCodeCommit環境
@@ -70,7 +71,9 @@ aws cloudformation create-stack --stack-name Backend-CodeBuild-Stack --template-
 * 2つのCodeBuildプロジェクトが作成されるので、それぞれビルド実行し、ECRにDockerイメージをプッシュさせる。
 
 ### 4. （FireLens利用時のみ）Fluent BitのDockerイメージプッシュ
+* firelensフォルダにある「extra-for-backend.conf」、「extra-for-backend.conf」の設定ファイル中の「bucket」をログ出力用のS3バケット名に変える
 * ログ転送にFireLensを利用する場合、サイドカーコンテナで使用するFluent BitのDockerイメージのビルドし、ECRにイメージをプッシュする
+* 以下、コマンドを実行
 ```sh
 cd firelens
 set AWS_ACCOUNT_ID=(アカウントID)
@@ -153,8 +156,8 @@ aws cloudformation create-stack --stack-name ECS-CLUSTER-Stack --template-body f
 aws cloudformation validate-template --template-body file://cfn-ecs-task.yaml
 aws cloudformation create-stack --stack-name ECS-TASK-Stack --template-body file://cfn-ecs-task.yaml
 ```
-#### 3-2. カスタムログルーティング（FireLens）の場合
-* TBD: awsfirelensドライバのタスク定義を作成中
+#### 3-2. カスタムログルーティング（FireLens + Fluent Bit）の場合
+* awsfirelensドライバのタスク定義を作成
 ```sh
 aws cloudformation validate-template --template-body file://cfn-ecs-task-firelens.yaml
 aws cloudformation create-stack --stack-name ECS-TASK-Stack --template-body file://cfn-ecs-task-firelens.yaml
@@ -192,9 +195,21 @@ aws cloudformation create-stack --stack-name Demo-Bastion-Stack --template-body 
   * ブラウザで「http://(Public ALBのDNS名)/backend-for-frontend/index.html」を入力しフロントエンドAPの画面が表示される
     * CloudFormationの「ECS-SERVICE-Stack」スタックの出力「FrontendWebAppServiceURI」のURLを参照
 
-* うまく動作しない場合、Cloud Watch Logの以下のロググループのAPログにエラーが出ていないか確認するとよい
-  * /ecs/logs/Demo-backend-ecs-group
-  * /ecs/logs/Demo-bff-ecs-group
+* APログの確認
+  * うまく動作しない場合、APログ等にエラーが出ていないか確認するとよい
+  * awslogsドライバの場合は、Cloud Watch Logの以下のロググループ
+    * /ecs/logs/Demo-backend-ecs-group
+    * /ecs/logs/Demo-bff-ecs-group
+  * FireLens+FluentBitの場合は、以下にログ出力
+    * Cloud Watch Log
+      * AP
+        * /ecs/logs/fluentbit-backend-group
+        * /ecs/logs/fluentbit-bff-group
+      * FluentBit（サイドカー側のコンテナ）
+        * /ecs/logs/fluentbit-backend-sidecar
+        * /ecs/logs/fluentbit-bff-sidecar
+    * S3
+      * (ログ出力用のバケット)/fluent-bit-logs/
 
 ### 6. Application AutoScalingの設定
 * 以下のコマンドで、ターゲット追跡スケーリングポリシーでオートスケーリング設定

@@ -73,7 +73,12 @@ Resources:
           - Action: sts:AssumeRole
             Effect: Allow
             Principal:
-              Service: ecs-tasks.amazonaws.com
+              Service: ecs-tasks.amazonaws.com      
+      ManagedPolicyArns:
+        #For FireLens      
+        #TODO: Review Required Actions of Policy Document
+        - arn:aws:iam::aws:policy/AmazonS3FullAccess   
+        - arn:aws:iam::aws:policy/CloudWatchLogsFullAccess
       Tags:
         - Key: Name
           Value: !Sub ${StackPrefix}-FrontendECSTaskRole
@@ -90,6 +95,11 @@ Resources:
             Effect: Allow
             Principal:
               Service: ecs-tasks.amazonaws.com
+      ManagedPolicyArns:
+        #For FireLens      
+        #TODO: Review Required Actions of Policy Document
+        - arn:aws:iam::aws:policy/AmazonS3FullAccess   
+        - arn:aws:iam::aws:policy/CloudWatchLogsFullAccess
       Tags:
         - Key: Name
           Value: !Sub ${StackPrefix}-BackendECSTaskRole
