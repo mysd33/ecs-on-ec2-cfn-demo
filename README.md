@@ -67,10 +67,10 @@ aws cloudformation create-stack --stack-name Backend-CodeBuild-Stack --template-
     * https://docs.aws.amazon.com/ja_jp/codebuild/latest/userguide/build-caching.html  
     * https://aws.amazon.com/jp/blogs/devops/how-to-enable-caching-for-aws-codebuild/
 
-### 3. ECRへアプリケーションの最初のDockerイメージをプッシュ
+### 4. ECRへアプリケーションの最初のDockerイメージをプッシュ
 * 2つのCodeBuildプロジェクトが作成されるので、それぞれビルド実行し、ECRにDockerイメージをプッシュさせる。
 
-### 4. （FireLens利用時のみ）Fluent BitのDockerイメージプッシュ
+### 5. （FireLens利用時のみ）Fluent BitのDockerイメージプッシュ
 * firelensフォルダにある「extra-for-backend.conf」、「extra-for-backend.conf」の設定ファイル中の「bucket」をログ出力用のS3バケット名に変える
 * ログ転送にFireLensを利用する場合、サイドカーコンテナで使用するFluent BitのDockerイメージのビルドし、ECRにイメージをプッシュする
 * 以下、コマンドを実行
