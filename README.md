@@ -41,8 +41,10 @@ aws cloudformation create-stack --stack-name ECS-IAM-Stack --template-body file:
 * 別途、以下の2つのSpringBootAPのプロジェクトが以下のリポジトリ名でCodeCommitにある前提
   * backend-for-frontend
     * BFFのAP
+    * backend-for-frontendという別のリポジトリに資材は格納
   * backend
     * BackendのAP
+    * backendという別のリポジトリに資材は格納
 
 ### 2. ECRの作成
 ```sh
@@ -62,7 +64,7 @@ aws cloudformation create-stack --stack-name Backend-CodeBuild-Stack --template-
 
 * 本当は、CloudFormationテンプレートのCodeBuildのSorceTypeをCodePipelineにするが、いったんDockerイメージ作成して動作確認したいので、今はCodeCommitになっている。動いてはいるので保留。
 
-* TBD: Mavenのカスタムローカルキャッシュによるビルド時間短縮がうまく動いていない
+* TODO: Mavenのカスタムローカルキャッシュによるビルド時間短縮がうまく動いていない
   * ひょっとしたら、ローカルキャッシュではなくS3でないとうまくいかない？
     * https://docs.aws.amazon.com/ja_jp/codebuild/latest/userguide/build-caching.html  
     * https://aws.amazon.com/jp/blogs/devops/how-to-enable-caching-for-aws-codebuild/
