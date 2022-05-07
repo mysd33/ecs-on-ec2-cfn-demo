@@ -37,7 +37,7 @@ aws cloudformation create-stack --stack-name ECS-IAM-Stack --template-body file:
   * RDB対応時は、ECSタスクへのIAMロールの付与のため修正が必要
 
 ## CI環境
-## 1. アプリケーションのCodeCommit環境
+### 1. アプリケーションのCodeCommit環境
 * 別途、以下の2つのSpringBootAPのプロジェクトが以下のリポジトリ名でCodeCommitにある前提
   * backend-for-frontend
     * BFFのAP
