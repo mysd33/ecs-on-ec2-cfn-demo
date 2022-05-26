@@ -189,7 +189,7 @@ aws cloudformation create-stack --stack-name Demo-Bastion-Stack --template-body 
 ```
   * 必要に応じてキーペア名等のパラメータを指定
     * 「--parameters ParameterKey=KeyPairName,ParameterValue=myKeyPair」
-  * BastionのEC2のアドレスは、CloudFormationの「ECS-Bastion-Stack」スタックの出力「BastionDNSName」のURLを参照    
+  * BastionのEC2のアドレスは、CloudFormationの「Demo-Bastion-Stack」スタックの出力「BastionDNSName」のURLを参照    
   * EC2にSSHでログインし、以下のコマンドを「curl http://(Private ALBのDNS名)/backend/api/v1/users」を入力するとバックエンドサービスAPのJSONレスポンスが返却
     * CloudFormationの「ECS-SERVICE-Stack」スタックの出力「BackendServiceURI」のURLを参照
 
