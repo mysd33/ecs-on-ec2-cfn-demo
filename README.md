@@ -29,8 +29,9 @@
 aws cloudformation validate-template --template-body file://cfn-iam.yaml
 aws cloudformation create-stack --stack-name ECS-IAM-Stack --template-body file://cfn-iam.yaml --capabilities CAPABILITY_IAM
 ```
-* CodePipeline、CodeBuildのArtifact用のS3バケット名を変えるには、それぞれのcnスタック作成時のコマンドでパラメータを指定する
+* CodePipeline、CodeBuildのArtifact用、キャッシュ用のS3バケット名を変えるには、それぞれのcnスタック作成時のコマンドでパラメータを指定する
     * 「--parameters ParameterKey=ArtifactS3BucketName,ParameterValue=(バケット名)」
+    * 「--parameters ParameterKey=CacheS3Location,ParameterValue=(パス名)」
 
 * TBD
   * IAMポリシーの記載は精査中
@@ -62,12 +63,11 @@ aws cloudformation create-stack --stack-name Backend-CodeBuild-Stack --template-
 * Artifact用のS3バケット名を変えるには、それぞれのcfnスタック作成時のコマンドでパラメータを指定する
     * 「--parameters ParameterKey=ArtifactS3BucketName,ParameterValue=(バケット名)」
 
+* 取得したMavenリポジトリをS3にキャッシュする。キャッシュ用のS3のパス（バケット名/プレフィックス）を変えるには、それぞれのcfnスタック作成時のコマンドでパラメータを指定する
+    * 「--parameters ParameterKey=CacheS3Location,ParameterValue=(パス名)」
+
 * 本当は、CloudFormationテンプレートのCodeBuildのSorceTypeをCodePipelineにするが、いったんDockerイメージ作成して動作確認したいので、今はCodeCommitになっている。動いてはいるので保留。
 
-* TODO: Mavenのカスタムローカルキャッシュによるビルド時間短縮がうまく動いていない
-  * ひょっとしたら、ローカルキャッシュではなくS3でないとうまくいかない？
-    * https://docs.aws.amazon.com/ja_jp/codebuild/latest/userguide/build-caching.html  
-    * https://aws.amazon.com/jp/blogs/devops/how-to-enable-caching-for-aws-codebuild/
 
 ### 4. ECRへアプリケーションの最初のDockerイメージをプッシュ
 * 2つのCodeBuildプロジェクトが作成されるので、それぞれビルド実行し、ECRにDockerイメージをプッシュさせる。
@@ -298,6 +298,10 @@ aws cloudformation create-stack --stack-name myteststack --enable-termination-pr
 * スタックの更新
 ```sh
 aws cloudformation update-stack --stack-name myteststack --template-body file://cfn-vpc.yaml
+```
+* スタックのデプロイ（チェンジセット作成しデプロイ）
+```sh
+aws cloudformation deploy --stack-name myteststack --template-file cfn-vpc.yaml
 ```
 * テンプレートの検証
 ```sh
