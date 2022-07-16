@@ -20,7 +20,7 @@
   * TBD: AutoScalingのカスタムキャパシティプロバイダによるクラスタオートスケーリングのサンプル追加検討中。
 
 ## 事前準備
-* CodePipeline、CodeBuildのArtifact用のS3バケットを作成しておく
+* CodePipeline、CodeBuildのArtifact用、キャッシュ用のS3バケットを作成しておく
 * FireLensを利用する場合はログ出力のS3バケットも作成しておく
   * 後続の手順で、バケット名を変更するパラメータがあるところで指定
 ## IAM
