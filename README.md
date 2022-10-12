@@ -17,12 +17,15 @@
 * オートスケーリング
   * 平均CPU使用率のターゲット追跡スケーリングポリシーによる例に対応している。
 ![オートスケーリング](img/autoscaling.png)
-  * TBD: AutoScalingのカスタムキャパシティプロバイダによるクラスタオートスケーリングのサンプル追加検討中。
 
 ## 事前準備
 * CodePipeline、CodeBuildのArtifact用、キャッシュ用のS3バケットを作成しておく
 * FireLensを利用する場合はログ出力のS3バケットも作成しておく
   * 後続の手順で、バケット名を変更するパラメータがあるところで指定
+
+## CloudFormationのコマンドについて
+* ここでは、aws cloudformation create-stackコマンドを使っているが、deployコマンド等、使う場合は適宜コマンドを読み替えて実行すること
+  * 詳細は[（参考）CloudFormationコマンド文法メモ](#参考cloudformationコマンド文法メモ)を参照
 ## IAM
 ### 1. IAMの作成
 ```sh
@@ -35,17 +38,16 @@ aws cloudformation create-stack --stack-name ECS-IAM-Stack --template-body file:
 
 * TBD
   * IAMポリシーの記載は精査中
-  * RDB対応時は、ECSタスクへのIAMロールの付与のため修正が必要
 
 ## CI環境
 ### 1. アプリケーションのCodeCommit環境
 * 別途、以下の2つのSpringBootAPのプロジェクトが以下のリポジトリ名でCodeCommitにある前提
-  * backend-for-frontend
+  * sample-bff
     * BFFのAP
-    * backend-for-frontendという別のリポジトリに資材は格納
-  * backend
+    * sample-bffという別のリポジトリに資材は格納
+  * sample-backend
     * BackendのAP
-    * backendという別のリポジトリに資材は格納
+    * sample-backendという別のリポジトリに資材は格納
 
 ### 2. ECRの作成
 ```sh
@@ -121,17 +123,35 @@ aws cloudformation validate-template --template-body file://cfn-ngw.yaml
 aws cloudformation create-stack --stack-name ECS-NATGW-Stack --template-body file://cfn-ngw.yaml
 ```
 
+## キャッシュ（ElastiCache）環境
+### 1. ElastiCache for Redisのクラスタ作成
+* BFFのAP(sample-bff)ではHTTPセッションを扱うがスケールイン/アウトにも対応できるようセッションを外部化し管理するために、ElasticCache for Redis（クラスタモード無効）を作成する。
+  * 作成にしばらく時間がかかる。
+```sh
+aws cloudformation validate-template --template-body file://cfn-ecache-redis.yaml
+aws cloudformation create-stack --stack-name ECS-ECACHE-Stack --template-body file://cfn-ecache-redis.yaml
+```
 ## DB環境
-* TBD:　今後Aurora等のRDBリソースのサンプル作成を検討
+### 1. Aurora for PostgreSQLのクラスタ作成
+* 各サンプルAPではRDBでデータ管理するため、Aurora for PostgreSQLを作成する。  
+  * 作成にしばらく時間がかかる。
+```sh
+aws cloudformation validate-template --template-body file://cfn-rds-aurora.yaml
+aws cloudformation create-stack --stack-name ECS-Aurora-Stack --template-body file://cfn-rds-aurora.yaml --parameters ParameterKey=DBUsername,ParameterValue=postgres ParameterKey=DBPassword,ParameterValue=password
+```
 
-## ECS環境
+## コンテナ（ECS）環境
 ### 1. ALBの作成
 * ECSの前方で動作するALBとデフォルトのTarget Group等を作成
+  * パラメータTargateGroupAttributesに「deregistration_delay.timeout_seconds」を「60」で設定し、ローリングアップデートの時間を短縮する工夫している。      
+  * 実機確認し設定しているが、AP起動が遅くヘルスチェックに失敗する場合には、パラメータ「HealthCheckIntervalSeconds」の値を長く調整するとよい。
 ```sh
 aws cloudformation validate-template --template-body file://cfn-alb.yaml
 aws cloudformation create-stack --stack-name ECS-ALB-Stack --template-body file://cfn-alb.yaml
 ```
 * BlueGreenデプロイメントの場合のみ以下実行し、2つ目（Green環境）用のTarget Groupを作成
+  * パラメータTargateGroupAttributesに「deregistration_delay.timeout_seconds」を「60」で設定し、ローリングアップデートの時間を短縮する工夫している。
+  * 実機確認し設定しているが、AP起動が遅くヘルスチェックに失敗する場合には、パラメータ「HealthCheckIntervalSeconds」の値を長く調整するとよい。
 ```sh
 aws cloudformation validate-template --template-body file://cfn-tg-bg.yaml
 aws cloudformation create-stack --stack-name ECS-TG-BG-Stack --template-body file://cfn-tg-bg.yaml
@@ -156,13 +176,13 @@ aws cloudformation create-stack --stack-name ECS-CLUSTER-Stack --template-body f
 * awslogsドライバのタスク定義を作成
 ```sh
 aws cloudformation validate-template --template-body file://cfn-ecs-task.yaml
-aws cloudformation create-stack --stack-name ECS-TASK-Stack --template-body file://cfn-ecs-task.yaml
+aws cloudformation create-stack --stack-name ECS-TASK-Stack --template-body file://cfn-ecs-task.yaml --parameters ParameterKey=DBUsername,ParameterValue=postgres ParameterKey=DBPassword,ParameterValue=password
 ```
 #### 3-2. カスタムログルーティング（FireLens + Fluent Bit）の場合
 * awsfirelensドライバのタスク定義を作成
 ```sh
 aws cloudformation validate-template --template-body file://cfn-ecs-task-firelens.yaml
-aws cloudformation create-stack --stack-name ECS-TASK-Stack --template-body file://cfn-ecs-task-firelens.yaml
+aws cloudformation create-stack --stack-name ECS-TASK-Stack --template-body file://cfn-ecs-task-firelens.yaml --parameters ParameterKey=DBUsername,ParameterValue=postgres ParameterKey=DBPassword,ParameterValue=password
 ```
 
 ### 4. ECSサービスの実行
@@ -172,7 +192,7 @@ aws cloudformation create-stack --stack-name ECS-TASK-Stack --template-body file
 aws cloudformation validate-template --template-body file://cfn-ecs-service.yaml
 aws cloudformation create-stack --stack-name ECS-SERVICE-Stack --template-body file://cfn-ecs-service.yaml
 ```
-* パラメータMinimumHealthyPercentを0%にしていて、1,2分気持ちローリングアップデートの時間が短くなるようになっている
+* パラメータMinimumHealthyPercentを0%にしてローリングアップデートの時間を短縮する工夫をしている
 #### 4-2. BlueGreenデプロイメントの場合
 * BlueGreenデプロイメントの場合は以下のパラメータを指定して起動
 ```sh
@@ -190,12 +210,13 @@ aws cloudformation create-stack --stack-name Demo-Bastion-Stack --template-body 
   * 必要に応じてキーペア名等のパラメータを指定
     * 「--parameters ParameterKey=KeyPairName,ParameterValue=myKeyPair」
   * BastionのEC2のアドレスは、CloudFormationの「Demo-Bastion-Stack」スタックの出力「BastionDNSName」のURLを参照    
-  * EC2にSSHでログインし、以下のコマンドを「curl http://(Private ALBのDNS名)/backend/api/v1/users」を入力するとバックエンドサービスAPのJSONレスポンスが返却
+  * EC2にSSHでログインし、以下のコマンドを「curl http://(Private ALBのDNS名)/api/v1/todos/」を入力するとバックエンドサービスAPのJSONレスポンスが返却
     * CloudFormationの「ECS-SERVICE-Stack」スタックの出力「BackendServiceURI」のURLを参照
 
 * BFFアプリケーションの確認
-  * ブラウザで「http://(Public ALBのDNS名)/backend-for-frontend/index.html」を入力しフロントエンドAPの画面が表示される
+  * ブラウザで「http://(Public ALBのDNS名)」を入力しフロントエンドAPの画面が表示される
     * CloudFormationの「ECS-SERVICE-Stack」スタックの出力「FrontendWebAppServiceURI」のURLを参照
+  * アプリケーションの操作方法は「sample-bff」のリポジトリのREADME.mdを参照
 
 * APログの確認
   * うまく動作しない場合、APログ等にエラーが出ていないか確認するとよい
@@ -212,6 +233,44 @@ aws cloudformation create-stack --stack-name Demo-Bastion-Stack --template-body 
         * /ecs/logs/fluentbit-bff-sidecar
     * S3
       * (ログ出力用のバケット)/fluent-bit-logs/
+* Bastionからredis-cliでElastiCacheにアクセスしたい場合
+  * 以下参考に、redis-cliをインストールして接続するとよい
+  ```sh
+  sudo amazon-linux-extras install epel -y
+  sudo yum install gcc jemalloc-devel openssl-devel tcl tcl-devel -y
+  sudo wget http://download.redis.io/redis-stable.tar.gz
+  sudo tar xvzf redis-stable.tar.gz
+  cd redis-stable
+  sudo make BUILD_TLS=yes
+
+  src/redis-cli -h (ElastiCacheのEndpoint)
+  # CloudFormationの「ECS-ECACHE-Stack」スタックの出力「ElastiCachePrimaryEndPoint」
+
+  > keys *  
+  ```
+* BastionからpsqlでAuroraにアクセスしたい場合
+  * 以下参考に、Bastionにpsqlをインストールするとよい
+    * https://techviewleo.com/how-to-install-postgresql-database-on-amazon-linux/
+  ```sh
+  sudo amazon-linux-extras install epel
+
+  sudo tee /etc/yum.repos.d/pgdg.repo<<EOF
+  [pgdg14]
+  name=PostgreSQL 14 for RHEL/CentOS 7 - x86_64
+  baseurl=http://download.postgresql.org/pub/repos/yum/14/redhat/rhel-7-x86_64
+  enabled=1
+  gpgcheck=0
+  EOF
+  
+  sudo yum makecache
+  sudo yum install postgresql14
+  
+  #DBに接続  
+  psql -h (Auroraのクラスタエンドポイント) -U postgres -d testdb    
+  # CloudFormationの「ECS-Aurora-Stack」スタックの出力「RDSClusterEndpointAddress」  
+  > select * from m_user;
+  > select * from todo;
+  ```
 
 ### 6. Application AutoScalingの設定
 * 以下のコマンドで、ターゲット追跡スケーリングポリシーでオートスケーリング設定
@@ -227,11 +286,10 @@ sudo yum install httpd-tools
 ```
   * 以下のいずれかのabコマンドを実行
 ```sh
-ab -n 1000000 -c 1000 http://(Private ALBのDNS名)/backend/api/v1/users
+ab -n 1000000 -c 1000 http://(Private ALBのDNS名)/api/v1/todos/
 ```
 ```sh
-ab -n 1000000 -c 1000 http://(Public ALBのDNS名).ap-northeast-1.elb.
-amazonaws.com/backend-for-frontend/index.html
+ab -n 1000000 -c 1000 http://(Public ALBのDNS名)/login
 ```
 * うまくCPU使用率75%以上にならない場合は、abコマンドのパラメータを調整するか、cfn-autoscaling.yamlのCPUUtilizationの値を下げて調整する
 * 対象のECSサービスに関するCPU使用率に関するCloudWatchアラームが出ていることを確認
@@ -266,9 +324,10 @@ aws cloudformation create-stack --stack-name Bff-CodeDeploy-Stack --template-bod
 aws cloudformation validate-template --template-body file://cfn-backend-codedeploy.yaml
 aws cloudformation create-stack --stack-name Backend-CodeDeploy-Stack --template-body file://cfn-backend-codedeploy.yaml
 ```
-
 * Artifact用のS3バケット名を変えるには、それぞれのcfnスタック作成時のコマンドでパラメータを指定する
     * 「--parameters ParameterKey=ArtifactS3BucketName,ParameterValue=(バケット名)」  
+
+* 現状、テンプレート内の「DeploymentConfigName」が線形リリース（「CodeDeployDefault.ECSLinear10PercentEvery1Minutes」）になっているが、一度に切り替えたい場合は、通常のBlueGreenデプロイメント（CodeDeployDefault.ECSAllAtOnce）に変えるとよい。
 ### 2. BlueGreenデプロイメント対応のCodePipelineの作成
 ```sh
 aws cloudformation validate-template --template-body file://cfn-bff-codepipeline-bg.yaml

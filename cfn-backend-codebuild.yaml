@@ -14,7 +14,8 @@ Parameters:
   RepositoryName:
     Description: Source Code Repository Location of CodeCommit
     Type: String
-    Default: backend
+    #Default: backend
+    Default: sample-backend
   ArtifactS3BucketName:
     Description: Artifact Location of S3 Bucket
     Type: String

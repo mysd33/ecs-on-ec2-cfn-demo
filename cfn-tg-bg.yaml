@@ -17,16 +17,16 @@ Parameters:
     MinLength: 1
     MaxLength: 255
     AllowedPattern: ^[-¥.¥/a-zA-Z0-9]*$
-    Default: /backend-for-frontend/index.html
-    #Default: /backend-for-frontend/actuator/health
+    #Default: /backend-for-frontend/index.html
+    Default: /actuator/health
   BackendHealthCheckPath:
     Description: Backend Service Default health check path
     Type: String
     MinLength: 1
     MaxLength: 255
     AllowedPattern: ^[-¥.¥/a-zA-Z0-9]*$
-    Default: /backend/api/v1/users
-    #Default: /backend/actuator/health    
+    #Default: /backend/api/v1/users
+    Default: /actuator/health    
 
 Mappings:
   DeployEnvironmentMap:
@@ -54,12 +54,12 @@ Resources:
       Port: !FindInMap [DeployEnvironmentMap, !Ref EnvironmentType, TargetGroupPort]
       Protocol: !FindInMap [DeployEnvironmentMap, !Ref EnvironmentType, Protocol]
       HealthCheckPath: !Ref FrontendHealthCheckPath      
-      HealthCheckIntervalSeconds: 60      
+      HealthCheckIntervalSeconds: 90
       #HealthCheckTimeoutSeconds: 5
-      #HealthyThresholdCount: 5
-      #TargetGroupAttributes: 
-      #  - Key: deregistration_delay.timeout_seconds
-      #    Value: '60'
+      #HealthyThresholdCount: 3
+      TargetGroupAttributes: 
+        - Key: deregistration_delay.timeout_seconds
+          Value: '60' 
       Tags:
         - Key: Name
           Value: !Sub ${StackPrefix}-PubTg2
@@ -74,12 +74,12 @@ Resources:
       Port: !FindInMap [DeployEnvironmentMap, !Ref EnvironmentType, TargetGroupPort]
       Protocol: !FindInMap [DeployEnvironmentMap, !Ref EnvironmentType, Protocol]
       HealthCheckPath: !Ref BackendHealthCheckPath
-      HealthCheckIntervalSeconds: 60      
+      HealthCheckIntervalSeconds: 60
       #HealthCheckTimeoutSeconds: 5
-      #HealthyThresholdCount: 5
-      #TargetGroupAttributes: 
-      #  - Key: deregistration_delay.timeout_seconds
-      #    Value: '60' 
+      #HealthyThresholdCount: 3
+      TargetGroupAttributes: 
+        - Key: deregistration_delay.timeout_seconds
+          Value: '60' 
       Tags:
         - Key: Name
           Value: !Sub ${StackPrefix}-PrivTg2     

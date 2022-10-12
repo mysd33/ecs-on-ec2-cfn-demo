@@ -14,7 +14,8 @@ Parameters:
   RepositoryName:
     Description: CodeComit repository name
     Type: String
-    Default: backend-for-frontend
+    #Default: backend-for-frontend
+    Default: sample-bff
   PipelineName:  
     Description: CodePipeline name
     Type: String

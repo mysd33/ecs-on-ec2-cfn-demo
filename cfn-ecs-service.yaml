@@ -148,11 +148,15 @@ Outputs:
   FrontendWebAppServiceURI:
     Description: Frontend Web Application URL
     Value: 
+#      Fn::Join: 
+#        - ""
+#        - - "http://"
+#          - Fn::ImportValue: !Sub ${StackPrefix}-PubALB-DNS                
+#          - "/backend-for-frontend/index.html"
       Fn::Join: 
         - ""
         - - "http://"
-          - Fn::ImportValue: !Sub ${StackPrefix}-PubALB-DNS                
-          - "/backend-for-frontend/index.html"
+          - Fn::ImportValue: !Sub ${StackPrefix}-PubALB-DNS          
   BackendService:
     Description: Backend ECS Service
     Value: !Ref BackendService
@@ -166,8 +170,12 @@ Outputs:
   BackendServiceURI:
     Description: Backend Service URL
     Value: 
+#      Fn::Join: 
+#        - ""
+#        - - "http://"
+#          - Fn::ImportValue: !Sub ${StackPrefix}-PrivALB-DNS                
+#          - "/backend/api/v1/users"
       Fn::Join: 
         - ""
         - - "http://"
-          - Fn::ImportValue: !Sub ${StackPrefix}-PrivALB-DNS                
-          - "/backend/api/v1/users"
+          - Fn::ImportValue: !Sub ${StackPrefix}-PrivALB-DNS 

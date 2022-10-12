@@ -1,0 +1,69 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: ElastiCache Template for CloudFormation Demo. Depends on cfn-vpc.yaml, cfn-sg.yaml
+#Metadata: 
+
+Parameters: 
+  StackPrefix:
+    Description: Stack Resource Name Prefix
+    Type: String
+    Default: Demo
+  ECacheEngineVersion:
+    Description: ElastiCache for Redis Engine Version
+    Type: String
+    Default: 6.2
+  ECacheParameterGroupName:
+    Description: ElastiCache ParameterGroup Name
+    Type: String
+    Default: default.redis6.x
+  ECacheInstanceType:
+    Description: ElastiCache instance type
+    Type: String
+    Default: cache.t2.micro    
+  NumberOfCacheClusters:
+    Description: Number of clusters this replication group
+    Type: Number
+    MinValue: 2
+    MaxValue: 6
+    Default: 2
+
+#Mappings: 
+
+#Conditions: 
+
+Resources: 
+  ElastiCacheSubnetGroup:
+    Type: AWS::ElastiCache::SubnetGroup
+    Properties:
+      CacheSubnetGroupName: !Sub ${StackPrefix}-ElastiCacheSubnetGroup
+      Description: ElastiCache Subnet Group
+      SubnetIds:
+        - Fn::ImportValue: !Sub ${StackPrefix}-PrivateSubnetOneId
+        - Fn::ImportValue: !Sub ${StackPrefix}-PrivateSubnetTwoId
+  ElastiCacheReplicationGroup:
+    Type: AWS::ElastiCache::ReplicationGroup
+    Properties:
+      AutomaticFailoverEnabled: true
+      CacheNodeType: !Ref ECacheInstanceType      
+      CacheParameterGroupName: !Ref ECacheParameterGroupName
+      CacheSubnetGroupName: !Ref ElastiCacheSubnetGroup
+      Engine: redis
+      EngineVersion: !Ref ECacheEngineVersion
+      MultiAZEnabled: true
+      NumCacheClusters: !Ref NumberOfCacheClusters
+      Port: 6379
+      ReplicationGroupDescription: RedisCluster ReplicationGroup
+      ReplicationGroupId: !Sub ${StackPrefix}-ReplicationGroup                        
+      SecurityGroupIds:
+        - Fn::ImportValue: !Sub ${StackPrefix}-ECacheSecurityGroup-ID 
+
+Outputs:
+  ElastiCacheReplicationGroupID:
+    Description: ElastiCache ReplicationGroup ID
+    Value: !Ref ElastiCacheReplicationGroup
+    Export:
+      Name: !Sub ${StackPrefix}-ECacheReplicationGroupID
+  ElastiCachePrimaryEndPoint:
+    Description: ElastiCache Primary Read Write EndPoint
+    Value: !GetAtt ElastiCacheReplicationGroup.PrimaryEndPoint.Address
+    Export:
+      Name: !Sub ${StackPrefix}-ECachePrimaryEndPoint

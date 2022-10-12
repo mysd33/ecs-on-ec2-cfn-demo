@@ -10,40 +10,88 @@ Parameters:
   BffRepositoryName:
     Description: Bff App Repository Name
     Type: String
-    Default: mynavi-sample-ecs-bff
+    #Default: mynavi-sample-ecs-bff
+    Default: sample-bff
   BackendRepositoryName:
     Description: Backend App Repository Name
     Type: String
-    Default: mynavi-sample-ecs-backend
+    #Default: mynavi-sample-ecs-backend
+    Default: sample-backend
+  BffFluentBitRepositoryName:
+    Description: Bff Sidecar Fluent Bit Repository Name
+    Type: String
+    Default: fluent-bit-bff
+  BackendFluentBitRepositoryName:
+    Description: Backend Sidecar Fluent Bit Repository Name
+    Type: String
+    Default: fluent-bit-backend
 
 #Mappings: 
 
 #Conditions: 
 
 Resources: 
+  #Repository for App 
   BffECRRepository:
     Type: AWS::ECR::Repository
     Properties:
       RepositoryName: !Ref BffRepositoryName
+      Tags:
+        - Key: Name
+          Value: !Sub ${StackPrefix}-BffECRRepository
   BackendECRRepository:
     Type: AWS::ECR::Repository
     Properties:
       RepositoryName: !Ref BackendRepositoryName
-  
+      Tags:
+        - Key: Name
+          Value: !Sub ${StackPrefix}-BackendECRRepository
+  #Repository for Sidecar FluentBit
+  BffFluentBitECRRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: !Ref BffFluentBitRepositoryName
+      Tags:
+        - Key: Name
+          Value: !Sub ${StackPrefix}-BffFluentBitECRRepository
+  BackendFluentBitECRRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: !Ref BackendFluentBitRepositoryName
+      Tags:
+        - Key: Name
+          Value: !Sub ${StackPrefix}-BackFluentBitECRRepository
+
 Outputs:
   BffECRRepositoryArn:
-    Description: Repository Arn
+    Description: Bff App Repository Arn
     Value: !GetAtt BffECRRepository.Arn
   BffECRRepositoryUri:
-    Description: Repository URI
+    Description: Bff App Repository URI
     Value: !GetAtt BffECRRepository.RepositoryUri
     Export:
       Name: !Sub ${StackPrefix}-BffECRRepositoryUri
   BackendECRRepositoryArn:
-    Description: Repository Arn
+    Description: Backend App Repository Arn
     Value: !GetAtt BackendECRRepository.Arn    
   BackendECRRepositoryUri:
-    Description: Repository URI
+    Description: Backend App Repository URI
     Value: !GetAtt BackendECRRepository.RepositoryUri
     Export:
       Name: !Sub ${StackPrefix}-BackendECRRepositoryUri
+  BffFluentBitECRRepositoryArn:
+    Description: Bff Sidecar Fluent Bit Repository Arn
+    Value: !GetAtt BffFluentBitECRRepository.Arn    
+  BffFluentBitECRRepositoryUri:
+    Description:  Bff Sidecar Fluent Bit Repository URI
+    Value: !GetAtt BffFluentBitECRRepository.RepositoryUri
+    Export:
+      Name: !Sub ${StackPrefix}-BffFluentBitECRRepositoryUri
+  BackendFluentBitECRRepositoryArn:
+    Description: Backend Sidecar Fluent Bit Repository Arn
+    Value: !GetAtt BackendFluentBitECRRepository.Arn    
+  BackendFluentBitECRRepositoryUri:
+    Description:  Backend Sidecar Fluent Bit Repository URI
+    Value: !GetAtt BackendFluentBitECRRepository.RepositoryUri
+    Export:
+      Name: !Sub ${StackPrefix}-BackendFluentBitECRRepositoryUri      

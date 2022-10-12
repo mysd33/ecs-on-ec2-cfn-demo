@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: ECS Task Definition Template for CloudFormation Demo. Depends on cfn-iam.yaml, cfn-ecr.yaml
+Description: ECS Task Definition Template for CloudFormation Demo. Depends on cfn-iam.yaml, cfn-ecr.yaml, cfn-ecache-redis.yaml, cfn-rds-aurora.yaml
 #Metadata: 
 
 Parameters: 
@@ -13,22 +13,40 @@ Parameters:
     AllowedValues: ["Dev", "Staging", "Production"]
     Default: Production
     ConstraintDescription: must be a prod or test
-
+  DBUsername:
+    NoEcho: 'true'
+    Description: Username for PostgreSQL database access
+    Type: String
+    MinLength: '1'
+    MaxLength: '16'
+    AllowedPattern: '[a-zA-Z][a-zA-Z0-9]*'
+    ConstraintDescription: must begin with a letter and contain only alphanumeric characters.
+  DBPassword:
+    NoEcho: 'true'
+    Description: Password for PostgreSQL database access
+    Type: String
+    MinLength: '8'
+    MaxLength: '41'
+    AllowedPattern: '[a-zA-Z0-9]*'
+    ConstraintDescription: must contain only alphanumeric characters.
 Mappings: 
   FrontendAppTaskDefinitionMap:
     Production:
       "Memory" : 1024
       "Cpu" : 512
       "ContainerName" : "ecsdemo-frontend-app"
-      "ContainerImage" : "mynavi-sample-ecs-bff:latest"
+      #"ContainerImage" : "mynavi-sample-ecs-bff:latest"
+      "ContainerImage" : "sample-bff:latest"
       "ContainerPort" : 8080
-      "ContainerMemory" : 1024
+      "ContainerMemory" : 1024      
       "Profile" : "production,log_container"
+      #"Profile" : "dev,log_container"
     Staging:
       "Memory" : 1024
       "Cpu" : 512
       "ContainerName" : "ecsdemo-frontend-app"
-      "ContainerImage" : "mynavi-sample-ecs-bff:latest"
+      #"ContainerImage" : "mynavi-sample-ecs-bff:latest"
+      "ContainerImage" : "sample-bff:latest"
       "ContainerPort" : 8080      
       "ContainerMemory" : 1024
       "Profile" : "staging,log_container"
@@ -36,7 +54,8 @@ Mappings:
       "Memory" : 1024
       "Cpu" : 512
       "ContainerName" : "ecsdemo-frontend-app"
-      "ContainerImage" : "mynavi-sample-ecs-bff:latest"
+      #"ContainerImage" : "mynavi-sample-ecs-bff:latest"
+      "ContainerImage" : "sample-bff:latest"
       "ContainerPort" : 8080
       "ContainerMemory" : 1024
       "Profile" : "dev,log_container"
@@ -45,7 +64,8 @@ Mappings:
       "Memory" : 1024
       "Cpu" : 512
       "ContainerName" : "ecsdemo-backend-service"
-      "ContainerImage" : "mynavi-sample-ecs-backend:latest"
+      #"ContainerImage" : "mynavi-sample-ecs-backend:latest"
+      "ContainerImage" : "sample-backend:latest"
       "ContainerPort" : 8080
       "ContainerMemory" : 1024
       "Profile" : "production,log_container"
@@ -53,7 +73,8 @@ Mappings:
       "Memory" : 1024
       "Cpu" : 512
       "ContainerName" : "ecsdemo-backend-service"
-      "ContainerImage" : "mynavi-sample-ecs-backend:latest"
+      #"ContainerImage" : "mynavi-sample-ecs-backend:latest"
+      "ContainerImage" : "sample-backend:latest"
       "ContainerPort" : 8080
       "ContainerMemory" : 1024
       "Profile" : "staging,log_container"
@@ -61,7 +82,8 @@ Mappings:
       "Memory" : 1024
       "Cpu" : 512
       "ContainerName" : "ecsdemo-backend-service"
-      "ContainerImage" : "mynavi-sample-ecs-backend:latest"
+      #"ContainerImage" : "mynavi-sample-ecs-backend:latest"
+      "ContainerImage" : "sample-backend:latest"
       "ContainerPort" : 8080
       "ContainerMemory" : 1024
       "Profile" : "dev,log_container"
@@ -96,7 +118,6 @@ Resources:
       Memory: !FindInMap [FrontendAppTaskDefinitionMap, !Ref EnvironmentType, Memory]
       Cpu: !FindInMap [FrontendAppTaskDefinitionMap, !Ref EnvironmentType, Cpu]
       NetworkMode: awsvpc      
-      #NetworkMode: bridge
       ExecutionRoleArn:
         Fn::ImportValue: !Sub ${StackPrefix}-ECSTaskExecutionRole-Arn
       TaskRoleArn:
@@ -111,14 +132,31 @@ Resources:
           PortMappings:
             - ContainerPort: !FindInMap [FrontendAppTaskDefinitionMap, !Ref EnvironmentType, ContainerPort]
           Environment:
-            - Name: ENV_TYPE
+            - Name: SPRING_PROFILES_ACTIVE
               Value: !FindInMap [FrontendAppTaskDefinitionMap, !Ref EnvironmentType, Profile]            
-            - Name: BACKEND_URL
+            - Name: API_BACKEND_URL
               Value: 
                 Fn::Join: 
                   - ""
                   - - "http://"
                     - Fn::ImportValue: !Sub ${StackPrefix}-PrivALB-DNS                
+            - Name: SPRING_REDIS_HOST
+              Value:
+                Fn::ImportValue: !Sub ${StackPrefix}-ECachePrimaryEndPoint
+            - Name: SPRING_DATASOURCE_URL
+              Value:
+                Fn::Join: 
+                  - ""
+                  - - "jdbc:postgresql://"
+                    - Fn::ImportValue: !Sub ${StackPrefix}-RDSClusterEndpointAddress
+                    - ":"
+                    - Fn::ImportValue: !Sub ${StackPrefix}-RDSClusterEndpoint
+                    - "/"
+                    - Fn::ImportValue: !Sub ${StackPrefix}-RDSDBName
+            - Name: SPRING_DATASOURCE_USERNAME
+              Value: !Ref DBUsername 
+            - Name: SPRING_DATASOURCE_PASSWORD
+              Value: !Ref DBPassword
           Memory: !FindInMap [FrontendAppTaskDefinitionMap, !Ref EnvironmentType, ContainerMemory]
           LogConfiguration:
             LogDriver: awslogs
@@ -139,7 +177,6 @@ Resources:
       Memory: !FindInMap [BackendServiceTaskDefinitionMap, !Ref EnvironmentType, Memory]
       Cpu: !FindInMap [BackendServiceTaskDefinitionMap, !Ref EnvironmentType, Cpu]      
       NetworkMode: awsvpc      
-      #NetworkMode: bridge
       ExecutionRoleArn:
         Fn::ImportValue: !Sub ${StackPrefix}-ECSTaskExecutionRole-Arn
       TaskRoleArn:
@@ -154,8 +191,22 @@ Resources:
           PortMappings:
             - ContainerPort: !FindInMap [BackendServiceTaskDefinitionMap, !Ref EnvironmentType, ContainerPort]              
           Environment:
-            - Name: ENV_TYPE
+            - Name: SPRING_PROFILES_ACTIVE
               Value: !FindInMap [BackendServiceTaskDefinitionMap, !Ref EnvironmentType, Profile]
+            - Name: SPRING_DATASOURCE_URL
+              Value:
+                Fn::Join: 
+                  - ""
+                  - - "jdbc:postgresql://"
+                    - Fn::ImportValue: !Sub ${StackPrefix}-RDSClusterEndpointAddress
+                    - ":"
+                    - Fn::ImportValue: !Sub ${StackPrefix}-RDSClusterEndpoint
+                    - "/"
+                    - Fn::ImportValue: !Sub ${StackPrefix}-RDSDBName
+            - Name: SPRING_DATASOURCE_USERNAME
+              Value: !Ref DBUsername 
+            - Name: SPRING_DATASOURCE_PASSWORD
+              Value: !Ref DBPassword              
           Memory: !FindInMap [BackendServiceTaskDefinitionMap, !Ref EnvironmentType, ContainerMemory]          
           LogConfiguration:
             LogDriver: awslogs

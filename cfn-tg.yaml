@@ -1,6 +1,8 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: ALB TargetGroup Template for CloudFormation Demo. Depends On cfn-vpc.yaml, cfn-alb.yaml.
 
+#This template is not used.
+
 Parameters:
   StackPrefix:
     Description: Stack Resource Name Prefix
@@ -15,14 +17,16 @@ Parameters:
 Mappings:
   TargetGroupDefinitionMap:
     FrontendWebApp:
-      "PathPattern": "/backend-for-frontend/*"
-      "HealthCheckPath": "/backend-for-frontend/index.html"
-#     "HealthCheckPath": "/backend-for-frontend/actuator/health"
+#      "PathPattern": "/backend-for-frontend/*"
+      "PathPattern": "/*"
+#      "HealthCheckPath": "/backend-for-frontend/index.html"
+      "HealthCheckPath": "/actuator/health"
       "Priority": 1
     BackendService:
-      "PathPattern": "/backend/*"
-      "HealthCheckPath": "/backend/api/v1/users"
-#     "HealthCheckPath": "/backend/actuator/health"
+#      "PathPattern": "/backend/*"
+      "PathPattern": "/*"
+#      "HealthCheckPath": "/backend/api/v1/users"
+      "HealthCheckPath": "/actuator/health"
       "Priority": 1
 #   BackendSampleService:
 #     "PathPattern": "/backend/api/v1/sample*"
@@ -30,28 +34,29 @@ Mappings:
 #     "Priority": 2
   DeployEnvironmentMap:
     Production:
-      "Protocol": "HTTPS"
-      "Port": 443
+      "Protocol": "HTTP"
+      "Port": 8080
     Staging:
       "Protocol": "HTTP"
-      "Port": 80
+      "Port": 8080
     Dev:
       "Protocol": "HTTP"
-      "Port": 80
+      "Port": 8080
 
 Resources:
   #Frontend Web App Target Group
   FrontendTargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
-    Properties:
+    Properties:      
       Name: !Sub ${StackPrefix}-Frontend-TargetGroup
+      TargetType: ip
       VpcId:
         Fn::ImportValue: !Sub ${StackPrefix}-VPC-ID
       Port: !FindInMap [DeployEnvironmentMap, !Ref EnvironmentType, Port]
       Protocol: !FindInMap [DeployEnvironmentMap, !Ref EnvironmentType, Protocol]
       HealthCheckPath: !FindInMap [TargetGroupDefinitionMap, FrontendWebApp, HealthCheckPath]
       HealthCheckIntervalSeconds: 60
-      HealthyThresholdCount: 2
+      #HealthyThresholdCount: 3
       TargetGroupAttributes:
         - Key: deregistration_delay.timeout_seconds
           Value: '60'
@@ -76,13 +81,14 @@ Resources:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
       Name: !Sub ${StackPrefix}-Backend-TargetGroup
+      TargetType: ip
       VpcId:
         Fn::ImportValue: !Sub ${StackPrefix}-VPC-ID
       Port: !FindInMap [DeployEnvironmentMap, !Ref EnvironmentType, Port]
       Protocol: !FindInMap [DeployEnvironmentMap, !Ref EnvironmentType, Protocol]
       HealthCheckPath: !FindInMap [TargetGroupDefinitionMap, FrontendWebApp, HealthCheckPath]
-      HealthCheckIntervalSeconds: 60
-      HealthyThresholdCount: 2
+      #HealthCheckIntervalSeconds: 30
+      #HealthyThresholdCount: 2
       TargetGroupAttributes:
         - Key: deregistration_delay.timeout_seconds
           Value: '60'

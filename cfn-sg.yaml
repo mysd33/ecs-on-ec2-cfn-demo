@@ -36,7 +36,7 @@ Resources:
         - Key: Name
           Value: !Sub ${StackPrefix}-Bastion-SG 
 
-# Security Group for VPC Endpoint  
+  # Security Group for VPC Endpoint  
   VPCEndpointSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -132,7 +132,53 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub ${StackPrefix}-PrivECS-SG  
-
+  # Security Group of ElastiCache
+  ECacheSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:      
+      GroupDescription: Access only from ECS and Bastion to ElastiCache
+      VpcId:
+        Fn::ImportValue: !Sub ${StackPrefix}-VPC-ID
+      SecurityGroupIngress:
+        - SourceSecurityGroupId: !Ref PublicECSSecurityGroup
+          IpProtocol: tcp
+          FromPort: 6379
+          ToPort: 6379
+          Description: Ingress from the Public ECS 
+        - SourceSecurityGroupId: !Ref BastionSecurityGroup
+          IpProtocol: tcp
+          FromPort: 6379
+          ToPort: 6379
+          Description: Ingress from the Bastion        
+      Tags:
+        - Key: Name
+          Value: !Sub ${StackPrefix}-ECache-SG 
+  # Security Group of RDS Aurora
+  AuroraSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:      
+      GroupDescription: Access only from ECS and Bastion to Aurora
+      VpcId:
+        Fn::ImportValue: !Sub ${StackPrefix}-VPC-ID
+      SecurityGroupIngress:
+        - SourceSecurityGroupId: !Ref PublicECSSecurityGroup
+          IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          Description: Ingress from the Public ECS 
+        - SourceSecurityGroupId: !Ref PrivateECSSecurityGroup
+          IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          Description: Ingress from the Private ECS           
+        - SourceSecurityGroupId: !Ref BastionSecurityGroup
+          IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          Description: Ingress from the Bastion        
+      Tags:
+        - Key: Name
+          Value: !Sub ${StackPrefix}-Aurora-SG 
 
 Outputs:
   BastionSecurityGroupID:
@@ -165,3 +211,13 @@ Outputs:
     Value:  !Ref PrivateECSSecurityGroup
     Export: 
       Name: !Sub ${StackPrefix}-PrivateECSSecurityGroup-ID
+  ECacheSecurityGroupID:
+    Description: ElastiCache ID
+    Value:  !Ref ECacheSecurityGroup
+    Export: 
+      Name: !Sub ${StackPrefix}-ECacheSecurityGroup-ID      
+  AuroraSecurityGroupID:
+    Description: AuroraSecurityGroup ID
+    Value:  !Ref AuroraSecurityGroup
+    Export: 
+      Name: !Sub ${StackPrefix}-AuroraSecurityGroup-ID          

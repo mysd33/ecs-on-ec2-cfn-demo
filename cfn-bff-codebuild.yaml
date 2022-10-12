@@ -14,7 +14,8 @@ Parameters:
   RepositoryName:
     Description: Source Code Repository Location of CodeCommit
     Type: String
-    Default: backend-for-frontend
+    #Default: backend-for-frontend
+    Default: sample-bff
   ArtifactS3BucketName:
     Description: Artifact Location of S3 Bucket
     Type: String

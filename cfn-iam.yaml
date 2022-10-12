@@ -14,7 +14,8 @@ Parameters:
   BffCodeCommitRepositoryName:
     Description: Backend for Frontend Source Code Repository Location of CodeCommit
     Type: String
-    Default: backend-for-frontend
+    Default: sample-bff
+    #Default: backend-for-frontend
   BffCodePipelineName:
     Description: Backend for Frontend CodePipeline Name
     Type: String
@@ -26,7 +27,8 @@ Parameters:
   BackendCodeCommitRepositoryName:
     Description: Source Code Repository Location of CodeCommit
     Type: String
-    Default: backend
+    Default: sample-backend
+    #Default: backend
   BackendCodePipelineName:
     Description: Backend CodePipeline Name
     Type: String
@@ -215,8 +217,8 @@ Resources:
           Effect: Allow
           Resource: 
             - !Sub arn:aws:s3:::${ArtifactS3BucketName}
-            - !Sub arn:aws:s3:::${ArtifactS3BucketName}/*
-            - !Sub arn:aws:s3:::${CacheS3Location}     
+            - !Sub arn:aws:s3:::${ArtifactS3BucketName}/*      
+            - !Sub arn:aws:s3:::${CacheS3Location}            
             - !Sub arn:aws:s3:::${CacheS3Location}/*
       PolicyName: !Sub ${StackPrefix}-CodeBuildPolicy
       Roles:
