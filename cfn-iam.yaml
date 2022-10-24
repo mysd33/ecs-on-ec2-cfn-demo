@@ -32,7 +32,7 @@ Parameters:
   BackendCodePipelineName:
     Description: Backend CodePipeline Name
     Type: String
-    Default: demo-bff-pipeline
+    Default: demo-backend-pipeline
   ArtifactS3BucketName:
     Description: Artifact Location of S3 Bucket
     Type: String
