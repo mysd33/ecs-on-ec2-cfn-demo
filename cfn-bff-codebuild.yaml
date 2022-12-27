@@ -16,6 +16,10 @@ Parameters:
     Type: String
     #Default: backend-for-frontend
     Default: sample-bff
+  BranchName:
+    Description: CodeCommit branch name
+    Type: String
+    Default: master  
   ArtifactS3BucketName:
     Description: Artifact Location of S3 Bucket
     Type: String
@@ -37,6 +41,7 @@ Resources:
       Source:
         Type: CODECOMMIT
         Location: !Sub https://git-codecommit.${AWS::Region}.amazonaws.com/v1/repos/${RepositoryName}
+      SourceVersion: !Ref BranchName
       Artifacts:
         Type: S3
         Location: !Sub ${ArtifactS3BucketName}
@@ -52,6 +57,10 @@ Resources:
           - Name: REPOSITORY_URI
             Value:
               Fn::ImportValue: !Sub ${StackPrefix}-BffECRRepositoryUri
+          - Name: ECS_TASK_DEFINITION
+            Value: !Sub ${StackPrefix}-ecstask-frontend-app
+          - Name: ECS_CONTAINER_NAME
+            Value: !Sub ecsdemo-frontend-app            
       ServiceRole:
         Fn::ImportValue: !Sub ${StackPrefix}-CodeBuildRole-Arn 
       TimeoutInMinutes: 10      

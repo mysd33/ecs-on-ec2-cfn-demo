@@ -112,12 +112,11 @@ Resources:
                   Fn::ImportValue: !Sub ${StackPrefix}-Frontend-DeploymentGroupName
                 TaskDefinitionTemplateArtifact: BuildArtifact
                 TaskDefinitionTemplatePath: taskdef.json
-                AppSpecTemplateArtifact: SourceArtifact
+                AppSpecTemplateArtifact: BuildArtifact
                 AppSpecTemplatePath: appspec.yaml
                 Image1ArtifactName: BuildArtifact
                 Image1ContainerName: IMAGE1_NAME
               InputArtifacts:
-                - Name: SourceArtifact              
                 - Name: BuildArtifact
               RunOrder: 1
       Tags:
