@@ -20,7 +20,7 @@
 ![ログドライバ](img/logdriver.png)
 * X-Rayによる分散トレーシング・可視化
   * X-Rayを使ってアプリケーションやAWSサービス間の処理の流れをトレースし、可視化に対応。
-    * X-Rayデーモンをサイドカーコンテナとして配置する必要がある。
+    * X-Rayデーモンをサイドカーコンテナとして配置。
 ![X-Ray](img/xray.png)
   * X-Rayによる可視化
 ![X-Ray可視化](img/xray-visualization.png)
