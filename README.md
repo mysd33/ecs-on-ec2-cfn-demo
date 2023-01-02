@@ -12,8 +12,14 @@
   * CloudWatch Container Insightsは有効化し、各メトリックスを可視化。
 * ログの転送
   * awslogsドライバを使ったCloudWatch Logsへのログ転送とFireLens+Fluent Bitによるログ転送に対応
+    * Firelensの場合はFirelensをサイドカーコンテナとして配置する必要がある。
 ![ログドライバ](img/logdriver.png)
-
+* X-Rayによる分散トレーシング・可視化
+  * X-Rayを使ってアプリケーションやAWSサービス間の処理の流れをトレースし、可視化に対応
+    * X-Rayデーモンをサイドカーコンテナとして配置する必要がある。
+![X-Ray](img/xray.png)
+  * X-Rayによる可視化
+![X-Ray可視化](img/xray-visualization.png)
 * オートスケーリング
   * 平均CPU使用率のターゲット追跡スケーリングポリシーによる例に対応している。
 ![オートスケーリング](img/autoscaling.png)
@@ -35,7 +41,7 @@ aws cloudformation create-stack --stack-name ECS-IAM-Stack --template-body file:
 * CodePipeline、CodeBuildのArtifact用、キャッシュ用のS3バケット名を変えるには、それぞれのcnスタック作成時のコマンドでパラメータを指定する
     * 「--parameters ParameterKey=ArtifactS3BucketName,ParameterValue=(バケット名)」
     * 「--parameters ParameterKey=CacheS3Location,ParameterValue=(パス名)」
-
+    
 * TBD
   * IAMポリシーの記載は精査中
 
@@ -74,17 +80,30 @@ aws cloudformation create-stack --stack-name Backend-CodeBuild-Stack --template-
 ### 4. ECRへアプリケーションの最初のDockerイメージをプッシュ
 * 2つのCodeBuildプロジェクトが作成されるので、それぞれビルド実行し、ECRにDockerイメージをプッシュさせる。
 
-### 5. （FireLens利用時のみ）Fluent BitのDockerイメージプッシュ
-* firelensフォルダにある「extra-for-backend.conf」、「extra-for-backend.conf」の設定ファイル中の「bucket」をログ出力用のS3バケット名に変える
-* ログ転送にFireLensを利用する場合、サイドカーコンテナで使用するFluent BitのDockerイメージのビルドし、ECRにイメージをプッシュする
+
+### 5. X-RayデーモンのDockerイメージプッシュ
+* X-Rayを利用し分散トレーシングおよび可視化を実施するため、x-rayフォルダにあるDockerFileを使用して、X-RayデーモンのDockerイメージをビルドし、ECRにイメージをプッシュする。
 * 以下、コマンドを実行
 ```sh
-cd firelens
+cd x-ray
 set AWS_ACCOUNT_ID=(アカウントID)
 set AWS_REGION=(リージョン)　#例: set AWS_REGION=ap-northeast-1
 aws ecr get-login-password --region %AWS_REGION% | docker login --username AWS --password-stdin %AWS_ACCOUNT_ID%.dkr.ecr.%AWS_REGION%.amazonaws.com
 ```
 ```sh
+docker build -t xray-daemon .
+docker tag xray-daemon:latest %AWS_ACCOUNT_ID%.dkr.ecr.%AWS_REGION%.amazonaws.com/xray-daemon:latest
+docker push %AWS_ACCOUNT_ID%.dkr.ecr.%AWS_REGION%.amazonaws.com/xray-daemon:latest
+```
+
+### 6. （FireLens利用時のみ）Fluent BitのDockerイメージプッシュ
+* firelensフォルダにある「extra-for-backend.conf」、「extra-for-backend.conf」の設定ファイル中の「bucket」をログ出力用のS3バケット名に変える。
+* ログ転送にFireLensを利用する場合、サイドカーコンテナで使用するFluent BitのDockerイメージをビルドし、ECRにイメージをプッシュする。
+* 以下、コマンドを実行
+```sh
+cd ..
+cd firelens
+
 docker build -t fluent-bit-bff -f DockerFileForBff .
 docker tag fluent-bit-bff:latest %AWS_ACCOUNT_ID%.dkr.ecr.%AWS_REGION%.amazonaws.com/fluent-bit-bff:latest
 docker push %AWS_ACCOUNT_ID%.dkr.ecr.%AWS_REGION%.amazonaws.com/fluent-bit-bff:latest
@@ -98,6 +117,7 @@ docker push %AWS_ACCOUNT_ID%.dkr.ecr.%AWS_REGION%.amazonaws.com/fluent-bit-backe
 ## ネットワーク環境
 ### 1. VPCおよびサブネット、Publicサブネット向けInternetGateway等の作成
 ```sh
+cd ..
 aws cloudformation validate-template --template-body file://cfn-vpc.yaml
 aws cloudformation create-stack --stack-name ECS-VPC-Stack --template-body file://cfn-vpc.yaml
 ```
@@ -143,7 +163,7 @@ aws cloudformation create-stack --stack-name ECS-Aurora-Stack --template-body fi
 ## コンテナ（ECS）環境
 ### 1. ALBの作成
 * ECSの前方で動作するALBとデフォルトのTarget Group等を作成
-  * パラメータTargateGroupAttributesに「deregistration_delay.timeout_seconds」を「60」で設定し、ローリングアップデートの時間を短縮する工夫している。      
+  * パラメータTargateGroupAttributesに「deregistration_delay.timeout_seconds」を「60」で設定し、ローリングアップデートの時間を短縮する工夫している。
   * 実機確認し設定しているが、AP起動が遅くヘルスチェックに失敗する場合には、パラメータ「HealthCheckIntervalSeconds」の値を長く調整するとよい。
 ```sh
 aws cloudformation validate-template --template-body file://cfn-alb.yaml
@@ -265,11 +285,11 @@ aws cloudformation create-stack --stack-name Demo-Bastion-Stack --template-body 
   sudo yum makecache
   sudo yum install postgresql14
   
-  #DBに接続  
+  #DBに接続    
   psql -h (Auroraのクラスタエンドポイント) -U postgres -d testdb    
-  # CloudFormationの「ECS-Aurora-Stack」スタックの出力「RDSClusterEndpointAddress」  
+  # CloudFormationの「ECS-Aurora-Stack」スタックの出力「RDSClusterEndpointAddress」   
   > select * from m_user;
-  > select * from todo;
+  > select * from todo;  
   ```
 
 ### 6. Application AutoScalingの設定
@@ -324,10 +344,10 @@ aws cloudformation create-stack --stack-name Bff-CodeDeploy-Stack --template-bod
 aws cloudformation validate-template --template-body file://cfn-backend-codedeploy.yaml
 aws cloudformation create-stack --stack-name Backend-CodeDeploy-Stack --template-body file://cfn-backend-codedeploy.yaml
 ```
+
 * Artifact用のS3バケット名を変えるには、それぞれのcfnスタック作成時のコマンドでパラメータを指定する
     * 「--parameters ParameterKey=ArtifactS3BucketName,ParameterValue=(バケット名)」  
-
-* 現状、テンプレート内の「DeploymentConfigName」が線形リリース（「CodeDeployDefault.ECSLinear10PercentEvery1Minutes」）になっているが、一度に切り替えたい場合は、通常のBlueGreenデプロイメント（CodeDeployDefault.ECSAllAtOnce）に変えるとよい。
+* 現状、テンプレート内の「DeploymentConfigName」が線形リリース（「CodeDeployDefault.ECSLinear10PercentEvery1Minutes」）になっているが、一度に切り替えたい場合は、通常のBlueGreenデプロイメント（CodeDeployDefault.ECSAllAtOnce）に変えるとよい。    
 ### 2. BlueGreenデプロイメント対応のCodePipelineの作成
 ```sh
 aws cloudformation validate-template --template-body file://cfn-bff-codepipeline-bg.yaml

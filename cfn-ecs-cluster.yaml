@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: ECS Cluster Template for CloudFormation Demo. Depends on cfn-vpc.yaml, cfn-ngw.yaml, cfn-sg.yaml, cfn-iam.yaml
+Description: ECS Cluster Template for CloudFormation Demo. Depends on cfn-vpc.yaml, cfn-vpe.yaml, cfn-ngw.yaml, cfn-sg.yaml, cfn-iam.yaml
 
 #Metadata:
 

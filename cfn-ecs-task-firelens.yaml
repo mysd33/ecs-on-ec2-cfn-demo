@@ -39,7 +39,7 @@ Mappings:
       #"ContainerImage" : "mynavi-sample-ecs-bff:latest"
       "ContainerImage" : "sample-bff:latest"
       "ContainerPort" : 8080            
-      "Profile" : "production,log_container"
+      "Profile" : "production,log_container,xray"
       #"Profile" : "dev,log_container"      
     Staging:
       "Memory" : 1024
@@ -48,7 +48,7 @@ Mappings:
       #"ContainerImage" : "mynavi-sample-ecs-bff:latest"
       "ContainerImage" : "sample-bff:latest"
       "ContainerPort" : 8080            
-      "Profile" : "staging,log_container"
+      "Profile" : "staging,log_container,xray"
     Dev:
       "Memory" : 1024
       "Cpu" : 512
@@ -56,7 +56,7 @@ Mappings:
       #"ContainerImage" : "mynavi-sample-ecs-bff:latest"
       "ContainerImage" : "sample-bff:latest"      
       "ContainerPort" : 8080
-      "Profile" : "dev,log_container"
+      "Profile" : "dev,log_container,xray"
   BackendServiceTaskDefinitionMap:
     Production:
       "Memory" : 1024
@@ -65,7 +65,7 @@ Mappings:
       #"ContainerImage" : "mynavi-sample-ecs-backend:latest"
       "ContainerImage" : "sample-backend:latest"
       "ContainerPort" : 8080      
-      "Profile" : "production,log_container"
+      "Profile" : "production,log_container,xray"
     Staging:
       "Memory" : 1024
       "Cpu" : 512
@@ -73,7 +73,7 @@ Mappings:
       #"ContainerImage" : "mynavi-sample-ecs-backend:latest"
       "ContainerImage" : "sample-backend:latest"
       "ContainerPort" : 8080      
-      "Profile" : "staging,log_container"
+      "Profile" : "staging,log_container,xray"
     Dev:
       "Memory" : 1024
       "Cpu" : 512
@@ -81,7 +81,7 @@ Mappings:
       #"ContainerImage" : "mynavi-sample-ecs-backend:latest"
       "ContainerImage" : "sample-backend:latest"
       "ContainerPort" : 8080      
-      "Profile" : "dev,log_container"
+      "Profile" : "dev,log_container,xray"
 
 #Conditions: 
 
@@ -156,7 +156,7 @@ Resources:
             LogDriver: awsfirelens
         - Name: frontend_log_router
           Image: 
-              Fn::ImportValue: !Sub ${StackPrefix}-BffFluentBitECRRepositoryUri
+            Fn::ImportValue: !Sub ${StackPrefix}-BffFluentBitECRRepositoryUri
           FirelensConfiguration:
             Type: fluentbit
             Options:
@@ -168,6 +168,14 @@ Resources:
               awslogs-group: !Ref FrontendFireLensLogGroup
               awslogs-region: !Ref "AWS::Region"
               awslogs-stream-prefix: !Ref StackPrefix              
+        - Name: xray-daemon
+          Image:
+            Fn::ImportValue: !Sub ${StackPrefix}-XRayDaemonECRRepositoryUri
+          Cpu: 32
+          MemoryReservation: 256          
+          PortMappings:
+            - ContainerPort: 2000              
+              Protocol: udp
       Tags:
         - Key: Name
           Value: !Sub ${StackPrefix}-FrontendAppECSTaskDefinition
@@ -215,7 +223,7 @@ Resources:
             LogDriver: awsfirelens
         - Name: backend_log_router
           Image: 
-              Fn::ImportValue: !Sub ${StackPrefix}-BackendFluentBitECRRepositoryUri
+            Fn::ImportValue: !Sub ${StackPrefix}-BackendFluentBitECRRepositoryUri
           FirelensConfiguration:
             Type: fluentbit
             Options:
@@ -227,6 +235,14 @@ Resources:
               awslogs-group: !Ref BackendFireLensLogGroup
               awslogs-region: !Ref "AWS::Region"
               awslogs-stream-prefix: !Ref StackPrefix          
+        - Name: xray-daemon
+          Image:
+            Fn::ImportValue: !Sub ${StackPrefix}-XRayDaemonECRRepositoryUri
+          Cpu: 32
+          MemoryReservation: 256          
+          PortMappings:
+            - ContainerPort: 2000              
+              Protocol: udp
       Tags:
         - Key: Name
           Value: !Sub ${StackPrefix}-BackendServiceECSTaskDefinition

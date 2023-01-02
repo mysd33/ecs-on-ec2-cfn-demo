@@ -81,10 +81,12 @@ Resources:
             Principal:
               Service: ecs-tasks.amazonaws.com      
       ManagedPolicyArns:
+        #For X-Ray
+        - arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess
         #For FireLens      
         #TODO: Review Required Actions of Policy Document
         - arn:aws:iam::aws:policy/AmazonS3FullAccess   
-        - arn:aws:iam::aws:policy/CloudWatchLogsFullAccess
+        - arn:aws:iam::aws:policy/CloudWatchLogsFullAccess        
       Tags:
         - Key: Name
           Value: !Sub ${StackPrefix}-FrontendECSTaskRole
@@ -102,6 +104,8 @@ Resources:
             Principal:
               Service: ecs-tasks.amazonaws.com
       ManagedPolicyArns:
+        #For X-Ray
+        - arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess      
         #For FireLens      
         #TODO: Review Required Actions of Policy Document
         - arn:aws:iam::aws:policy/AmazonS3FullAccess   

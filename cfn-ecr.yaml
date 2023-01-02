@@ -25,6 +25,10 @@ Parameters:
     Description: Backend Sidecar Fluent Bit Repository Name
     Type: String
     Default: fluent-bit-backend
+  XRayDaemonRepositoryName:
+    Description: X-Ray Daemon Repository Name
+    Type: String
+    Default: xray-daemon
 
 #Mappings: 
 
@@ -61,7 +65,13 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub ${StackPrefix}-BackFluentBitECRRepository
-
+  XRayDaemonECRRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: !Ref XRayDaemonRepositoryName
+      Tags:
+        - Key: Name
+          Value: !Sub ${StackPrefix}-XRayDaemonRepository
 Outputs:
   BffECRRepositoryArn:
     Description: Bff App Repository Arn
@@ -95,3 +105,11 @@ Outputs:
     Value: !GetAtt BackendFluentBitECRRepository.RepositoryUri
     Export:
       Name: !Sub ${StackPrefix}-BackendFluentBitECRRepositoryUri      
+  XRayDaemonECRRepositoryArn:  
+    Description: X-Ray Daemon Repository Arn
+    Value: !GetAtt XRayDaemonECRRepository.Arn    
+  XRayDaemonECRRepositoryUri:
+    Description:  X-Ray Daemon Repository URI
+    Value: !GetAtt XRayDaemonECRRepository.RepositoryUri
+    Export:
+      Name: !Sub ${StackPrefix}-XRayDaemonECRRepositoryUri    
