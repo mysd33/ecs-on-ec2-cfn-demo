@@ -1,21 +1,25 @@
 # SpringBoot APをECS on EC2で動作させCode系でCI/CDするCloudFormationサンプルテンプレート
 
 ## 構成
-* CDは標準のローリングアップデートとBlueGreenデプロイメントの両方に対応しており、以下のいずれか２つの構成が構築できる。
-  * システム構成図　ローリングアップデート版
-![システム構成図ローリングアップデート版](img/ecs-rolling-update.png)
-  * システム構成図　BlueGreenデプロメント版
-![システム構成図BlueGreenデプロイメント版](img/ecs-bluegreen-deployment.png)
-  * なお、図は、ECSからのAPログ転送にCloudWatch Logs（awslogsドライバ）を利用した場合の例を示している
+* システム構成図
+![システム構成図](img/ecs.png)  
+  * なお、図は、ECSからのAPログ転送にCloudWatch Logs（awslogsドライバ）を利用した場合の例をしている。
+* CI/CD
+  * CodePipeline、CodeBuild、CodeDeployを使った、CI/CDに対応。
+  * CDは標準のローリングアップデートとBlueGreenデプロイメントの両方に対応しており、以下のいずれか２つの構成が構築できる。
+    * ローリングアップデート
+![ローリングアップデート](img/ecs-rolling-update.png)
+    * BlueGreenデプロメント
+![BlueGreenデプロイメント](img/ecs-bluegreen-deployment.png)
 
 * メトリックスのモニタリング
   * CloudWatch Container Insightsは有効化し、各メトリックスを可視化。
 * ログの転送
-  * awslogsドライバを使ったCloudWatch Logsへのログ転送とFireLens+Fluent Bitによるログ転送に対応
+  * awslogsドライバを使ったCloudWatch Logsへのログ転送とFireLens+Fluent Bitによるログ転送に対応。
     * Firelensの場合はFirelensをサイドカーコンテナとして配置する必要がある。
 ![ログドライバ](img/logdriver.png)
 * X-Rayによる分散トレーシング・可視化
-  * X-Rayを使ってアプリケーションやAWSサービス間の処理の流れをトレースし、可視化に対応
+  * X-Rayを使ってアプリケーションやAWSサービス間の処理の流れをトレースし、可視化に対応。
     * X-Rayデーモンをサイドカーコンテナとして配置する必要がある。
 ![X-Ray](img/xray.png)
   * X-Rayによる可視化
