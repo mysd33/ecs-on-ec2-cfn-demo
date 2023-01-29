@@ -69,7 +69,6 @@ Resources:
         - !Ref ECSRole
 
   #IAM Role for Frontend ECS Task
-  #TODO: modify for RDS Aurora Accesss
   FrontendECSTaskRole:
     Type: AWS::IAM::Role
     Properties:
@@ -84,7 +83,7 @@ Resources:
         #For X-Ray
         - arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess
         #For FireLens      
-        #TODO: Review Required Actions of Policy Document
+        #TODO: Review Required Actions of Policy
         - arn:aws:iam::aws:policy/AmazonS3FullAccess   
         - arn:aws:iam::aws:policy/CloudWatchLogsFullAccess        
       Tags:
@@ -92,7 +91,6 @@ Resources:
           Value: !Sub ${StackPrefix}-FrontendECSTaskRole
 
   #IAM Role for Backend ECS Task
-  #TODO: modify for RDS Aurora Accesss
   BackendECSTaskRole:
     Type: AWS::IAM::Role
     Properties:
@@ -107,12 +105,53 @@ Resources:
         #For X-Ray
         - arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess      
         #For FireLens      
-        #TODO: Review Required Actions of Policy Document
+        #TODO: Review Required Actions of Policy
         - arn:aws:iam::aws:policy/AmazonS3FullAccess   
         - arn:aws:iam::aws:policy/CloudWatchLogsFullAccess
       Tags:
         - Key: Name
           Value: !Sub ${StackPrefix}-BackendECSTaskRole
+  
+  #IAM Policy for Backend ECS Task
+  BackendECSTaskPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyDocument:
+        Statement:
+        # DynamoDBTableAccess
+        - Action:
+          - dynamodb:BatchGetItem
+          - dynamodb:BatchWriteItem
+          - dynamodb:ConditionCheckItem
+          - dynamodb:PutItem
+          - dynamodb:DescribeTable
+          - dynamodb:DeleteItem
+          - dynamodb:GetItem
+          - dynamodb:Scan
+          - dynamodb:Query
+          - dynamodb:UpdateItem
+          - dynamodb:DescribeLimits
+          - dynamodb:ListTables
+          - dynamodb:CreateTable
+          Effect: Allow
+          Resource:
+          - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/*
+          - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/*/index/*
+        - Action:
+          - dynamodb:GetShardIterator
+          - dynamodb:Scan
+          - dynamodb:Query
+          - dynamodb:DescribeStream
+          - dynamodb:GetRecords
+          - dynamodb:ListStreams
+          - dynamodb:DescribeLimits
+          Effect: Allow
+          Resource:          
+          - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/*/index/*          
+      PolicyName: !Sub ${StackPrefix}-BackendECSTaskPolicy
+      Roles:
+      - !Ref BackendECSTaskRole
+
 
   #IAM Role for ECS Task Execution  
   ECSTaskExecutionRole:

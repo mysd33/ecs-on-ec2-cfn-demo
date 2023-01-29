@@ -13,6 +13,17 @@ Parameters:
 #Conditions: 
 
 Resources:
+# VPC Endoint for DynamoDB
+  DynamoDBEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcEndpointType: Gateway
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.dynamodb
+      VpcId: 
+        Fn::ImportValue: !Sub ${StackPrefix}-VPC-ID
+      RouteTableIds:
+        - Fn::ImportValue: !Sub ${StackPrefix}-PrivateRouteTableId
+        
 # VPC Endpoint for S3
   S3VPCEndpoint:
     Type: AWS::EC2::VPCEndpoint
@@ -140,4 +151,5 @@ Resources:
       SecurityGroupIds: 
         - Fn::ImportValue: !Sub ${StackPrefix}-VPCEndpointSecurityGroup-ID
       PrivateDnsEnabled: true  
+
 #Outputs:

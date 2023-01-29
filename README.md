@@ -2,24 +2,29 @@
 
 ## 構成
 * システム構成図
-![システム構成図](img/ecs.png)  
-  * なお、図は、ECSからのAPログ転送にCloudWatch Logs（awslogsドライバ）を利用した場合の例をしている。
+    * RDB(Aurora for Postgres)のみ版
+        * 通常は、BFFアプリケーション、BackendアプリケーションともにRDB(Aurora for Postgres)にアクセスする構成で構築される。
+![システム構成図](img/ecs.png)    
+    * RDB(Aurora for Postgres)+DynamoDB併用版
+        * BackendアプリケーションをDynamoDBアクセス版のサンプルAPに差し変えることで、ECSからDynamoDBへのアクセスも実現した構成が構築できる。
+![システム構成図](img/ecs-dynamodb.png)    
+    * なお、上図はECSからのAPログ転送にCloudWatch Logs（awslogsドライバ）を利用した場合の例で記載しているが、後述の通り、FireLens+Fluent Bitによるログ転送にも対応している。
 * CI/CD
-  * CodePipeline、CodeBuild、CodeDeployを使った、CI/CDに対応。
-  * CDは標準のローリングアップデートとBlueGreenデプロイメントの両方に対応しており、以下のいずれか２つの構成が構築できる。
-    * ローリングアップデート
+    * CodePipeline、CodeBuild、CodeDeployを使った、CI/CDに対応。
+    * CDは標準のローリングアップデートとBlueGreenデプロイメントの両方に対応しており、以下のいずれか２つの構成が構築できる。
+        * ローリングアップデート
 ![ローリングアップデート](img/ecs-rolling-update.png)
-    * BlueGreenデプロメント
+        * BlueGreenデプロメント
 ![BlueGreenデプロイメント](img/ecs-bluegreen-deployment.png)
 
 * メトリックスのモニタリング
-  * CloudWatch Container Insightsは有効化し、各メトリックスを可視化。
+    * CloudWatch Container Insightsは有効化し、各メトリックスを可視化。
 * ログの転送
-  * awslogsドライバを使ったCloudWatch Logsへのログ転送とFireLens+Fluent Bitによるログ転送に対応。
+    * awslogsドライバを使ったCloudWatch Logsへのログ転送とFireLens+Fluent Bitによるログ転送に対応。
     * Firelensの場合はFirelensをサイドカーコンテナとして配置する必要がある。
 ![ログドライバ](img/logdriver.png)
 * X-Rayによる分散トレーシング・可視化
-  * X-Rayを使ってアプリケーションやAWSサービス間の処理の流れをトレースし、可視化に対応。
+    * X-Rayを使ってアプリケーションやAWSサービス間の処理の流れをトレースし、可視化に対応。
     * X-Rayデーモンをサイドカーコンテナとして配置。
 ![X-Ray](img/xray.png)
   * X-Rayによる可視化
@@ -31,18 +36,25 @@
 ## 事前準備
 * CodePipeline、CodeBuildのArtifact用、キャッシュ用のS3バケットを作成しておく
 * FireLensを利用する場合はログ出力のS3バケットも作成しておく
-  * 後続の手順で、バケット名を変更するパラメータがあるところで指定
+    * 後続の手順で、バケット名を変更するパラメータがあるところで指定
 
 ## CloudFormationのコマンドについて
 * ここでは、aws cloudformation create-stackコマンドを使っているが、deployコマンド等、使う場合は適宜コマンドを読み替えて実行すること
-  * 詳細は[（参考）CloudFormationコマンド文法メモ](#参考cloudformationコマンド文法メモ)を参照
+    * 詳細は[（参考）CloudFormationコマンド文法メモ](#参考cloudformationコマンド文法メモ)を参照
 ## IAM
 ### 1. IAMの作成
+* BackendアプリケーションがRDBアクセス版の場合
 ```sh
 aws cloudformation validate-template --template-body file://cfn-iam.yaml
 aws cloudformation create-stack --stack-name ECS-IAM-Stack --template-body file://cfn-iam.yaml --capabilities CAPABILITY_IAM
 ```
-* CodePipeline、CodeBuildのArtifact用、キャッシュ用のS3バケット名を変えるには、それぞれのcnスタック作成時のコマンドでパラメータを指定する
+* BackendアプリケーションがDynamoDBアクセス版の場合
+```sh
+aws cloudformation validate-template --template-body file://cfn-iam.yaml
+aws cloudformation create-stack --stack-name ECS-IAM-Stack --template-body file://cfn-iam.yaml --capabilities CAPABILITY_IAM --parameters ParameterKey=BackendCodeCommitRepositoryName,ParameterValue=sample-backend-dynamodb
+```
+
+* CodePipeline、CodeBuildのArtifact用、キャッシュ用のS3バケット名を変えるには、それぞれのcfnスタック作成時のコマンドでパラメータを指定する
     * 「--parameters ParameterKey=ArtifactS3BucketName,ParameterValue=(バケット名)」
     * 「--parameters ParameterKey=CacheS3Location,ParameterValue=(パス名)」
     
@@ -51,27 +63,47 @@ aws cloudformation create-stack --stack-name ECS-IAM-Stack --template-body file:
 
 ## CI環境
 ### 1. アプリケーションのCodeCommit環境
-* 別途、以下の2つのSpringBootAPのプロジェクトが以下のリポジトリ名でCodeCommitにある前提
-  * sample-bff
-    * BFFのAP
-    * sample-bffという別のリポジトリに資材は格納
-  * sample-backend
-    * BackendのAP
-    * sample-backendという別のリポジトリに資材は格納
+* 以下の2つのSpringBootAPのプロジェクトが以下のリポジトリ名でCodeCommitに格納する
+    * sample-bff
+        * BFFのAP
+        * sample-bffという別のリポジトリに資材は格納
+        * Githubに同名の資材があるので、これをCodeCommitに格納する
+            * [sample-bff](https://github.com/mysd33/sample-bff)
+    * sample-backend（またはsample-backend-dynamodb）
+        * BackendのAP
+        * RDBアクセス版は、sample-backendという別のリポジトリに資材は格納
+        * DynamoDBアクセス版は、sample-backend-dynamodbという別のリポジトリに資材は格納
+        * Githubに同名の資材があるので、いずれかをCodeCommitに格納する
+            * [sample-backend](https://github.com/mysd33/sample-backend)
+            * [sample-backend-dynamodb](https://github.com/mysd33/sample-backend-dynamodb)
 
 ### 2. ECRの作成
 ```sh
 aws cloudformation validate-template --template-body file://cfn-ecr.yaml
 aws cloudformation create-stack --stack-name ECR-Stack --template-body file://cfn-ecr.yaml
 ```
-* ２つのSpringBootAP用と、ログ転送にFireLens利用時のFluentBit用のリポジトリが作成される。
+* ２つのSpringBootAP用のリポジトリと、X-Rayデーモン用のリポジトリ、ログ転送にFireLens利用時のFluentBit用のリポジトリが作成される。
 ### 3. CodeBuildのプロジェクト作成
+* BFFアプリケーション
 ```sh
 aws cloudformation validate-template --template-body file://cfn-bff-codebuild.yaml
 aws cloudformation create-stack --stack-name BFF-CodeBuild-Stack --template-body file://cfn-bff-codebuild.yaml
-aws cloudformation validate-template --template-body file://cfn-backend-codebuild.yaml
-aws cloudformation create-stack --stack-name Backend-CodeBuild-Stack --template-body file://cfn-backend-codebuild.yaml
 ```
+
+* Backendアプリケーション
+    * RDBアクセス版の場合
+    ```sh
+    aws cloudformation validate-template --template-body file://cfn-backend-codebuild.yaml
+    aws cloudformation create-stack --stack-name Backend-CodeBuild-Stack --template-body file://cfn-backend-codebuild.yaml
+    ```
+
+    * DynamoDBアクセス版の場合
+        * パラメータ「RepositoryName」に「sample-backend-dynamodb」を指定する
+    ```sh
+    aws cloudformation validate-template --template-body file://cfn-backend-codebuild.yaml
+    aws cloudformation create-stack --stack-name Backend-CodeBuild-Stack --template-body file://cfn-backend-codebuild.yaml --parameters ParameterKey=RepositoryName,ParameterValue=sample-backend-dynamodb
+    ```
+
 * Artifact用のS3バケット名を変えるには、それぞれのcfnスタック作成時のコマンドでパラメータを指定する
     * 「--parameters ParameterKey=ArtifactS3BucketName,ParameterValue=(バケット名)」
 
@@ -140,7 +172,7 @@ aws cloudformation create-stack --stack-name ECS-VPE-Stack --template-body file:
 ```
 ### 4.（作成任意）NAT Gatewayの作成とプライベートサブネットのルートテーブル更新
 * 本手順では、ECRのイメージ転送量等にかかるNAT Gatewayのコスト節約から、全てVPC Endpointで作成するので、NAT Gatewayは通常不要。
-  * とはいえ、全部VPC Endpointにすると、エンドポイント数分、デモ程度で何度も起動したり落としたりで1時間未満でも時間単位課金でコストがかえって結構かかる場合もある。その場合の調整として、本手順のVPC Endpoint作成対象を減らす等カスタマイズして、VPC Endpoint未作成のリソースアクセスに使用するために以下を追加実行すればよい。
+    * とはいえ、全部VPC Endpointにすると、エンドポイント数分、デモ程度で何度も起動したり落としたりで1時間未満でも時間単位課金でコストがかえって結構かかる場合もある。その場合の調整として、本手順のVPC Endpoint作成対象を減らす等カスタマイズして、VPC Endpoint未作成のリソースアクセスに使用するために以下を追加実行すればよい。
 
 ```sh
 aws cloudformation validate-template --template-body file://cfn-ngw.yaml
@@ -150,32 +182,36 @@ aws cloudformation create-stack --stack-name ECS-NATGW-Stack --template-body fil
 ## キャッシュ（ElastiCache）環境
 ### 1. ElastiCache for Redisのクラスタ作成
 * BFFのAP(sample-bff)ではHTTPセッションを扱うがスケールイン/アウトにも対応できるようセッションを外部化し管理するために、ElasticCache for Redis（クラスタモード無効）を作成する。
-  * 作成にしばらく時間がかかる。
+    * 作成にしばらく時間がかかる。
 ```sh
 aws cloudformation validate-template --template-body file://cfn-ecache-redis.yaml
 aws cloudformation create-stack --stack-name ECS-ECACHE-Stack --template-body file://cfn-ecache-redis.yaml
 ```
-## DB環境
+## RDB環境
 ### 1. Aurora for PostgreSQLのクラスタ作成
 * 各サンプルAPではRDBでデータ管理するため、Aurora for PostgreSQLを作成する。  
-  * 作成にしばらく時間がかかる。
+    * 作成にしばらく時間がかかる。
 ```sh
 aws cloudformation validate-template --template-body file://cfn-rds-aurora.yaml
 aws cloudformation create-stack --stack-name ECS-Aurora-Stack --template-body file://cfn-rds-aurora.yaml --parameters ParameterKey=DBUsername,ParameterValue=postgres ParameterKey=DBPassword,ParameterValue=password
 ```
 
+## DynamoDB環境
+* DynamoDBに関しては、Backendアプリケーション起動時に、テーブルがなければ作成されるため、CloudFormationによるテーブル作成は不要となっている。
+* このため、後片付けの際、CloudFormationのスタックを削除しても、テーブル削除されないため、マネージドコンソール等から、手動で削除すること。
+
 ## コンテナ（ECS）環境
 ### 1. ALBの作成
 * ECSの前方で動作するALBとデフォルトのTarget Group等を作成
-  * パラメータTargateGroupAttributesに「deregistration_delay.timeout_seconds」を「60」で設定し、ローリングアップデートの時間を短縮する工夫している。
-  * 実機確認し設定しているが、AP起動が遅くヘルスチェックに失敗する場合には、パラメータ「HealthCheckIntervalSeconds」の値を長く調整するとよい。
+    * パラメータTargateGroupAttributesに「deregistration_delay.timeout_seconds」を「60」で設定し、ローリングアップデートの時間を短縮する工夫している。
+    * 実機確認し設定しているが、AP起動が遅くヘルスチェックに失敗する場合には、パラメータ「HealthCheckIntervalSeconds」の値を長く調整するとよい。
 ```sh
 aws cloudformation validate-template --template-body file://cfn-alb.yaml
 aws cloudformation create-stack --stack-name ECS-ALB-Stack --template-body file://cfn-alb.yaml
 ```
 * BlueGreenデプロイメントの場合のみ以下実行し、2つ目（Green環境）用のTarget Groupを作成
-  * パラメータTargateGroupAttributesに「deregistration_delay.timeout_seconds」を「60」で設定し、ローリングアップデートの時間を短縮する工夫している。
-  * 実機確認し設定しているが、AP起動が遅くヘルスチェックに失敗する場合には、パラメータ「HealthCheckIntervalSeconds」の値を長く調整するとよい。
+    * パラメータTargateGroupAttributesに「deregistration_delay.timeout_seconds」を「60」で設定し、ローリングアップデートの時間を短縮する工夫している。
+    * 実機確認し設定しているが、AP起動が遅くヘルスチェックに失敗する場合には、パラメータ「HealthCheckIntervalSeconds」の値を長く調整するとよい。
 ```sh
 aws cloudformation validate-template --template-body file://cfn-tg-bg.yaml
 aws cloudformation create-stack --stack-name ECS-TG-BG-Stack --template-body file://cfn-tg-bg.yaml
@@ -192,9 +228,9 @@ aws cloudformation validate-template --template-body file://cfn-ecs-cluster.yaml
 aws cloudformation create-stack --stack-name ECS-CLUSTER-Stack --template-body file://cfn-ecs-cluster.yaml
 ```
 * 必要に応じてキーペア名のパラメータ値を修正して使用
-  * 「Mappings:」の「FrontendClusterDefinitionMap:」の「KeyPairName:」
-  * 「Mappings:」の「BackendClusterDefinitionMap:」の「KeyPairName:」  
-    * 「myKeyPair」となっているところを自分のキーペア名に修正
+    * 「Mappings:」の「FrontendClusterDefinitionMap:」の「KeyPairName:」
+    * 「Mappings:」の「BackendClusterDefinitionMap:」の「KeyPairName:」  
+        * 「myKeyPair」となっているところを自分のキーペア名に修正
 ### 3. ECSタスク定義の作成
 #### 3-1. ログ転送先がCloud Watch Logs（awslogsドライバ）の場合
 * awslogsドライバのタスク定義を作成
@@ -226,75 +262,76 @@ aws cloudformation create-stack --stack-name ECS-SERVICE-Stack --template-body f
 
 ### 5. APの実行確認
 * Backendアプリケーションの確認  
-  * VPCのパブリックサブネット上にBationのEC2を起動
-```sh
-aws cloudformation validate-template --template-body file://cfn-bastion-ec2.yaml
-aws cloudformation create-stack --stack-name Demo-Bastion-Stack --template-body file://cfn-bastion-ec2.yaml
-```
-  * 必要に応じてキーペア名等のパラメータを指定
-    * 「--parameters ParameterKey=KeyPairName,ParameterValue=myKeyPair」
-  * BastionのEC2のアドレスは、CloudFormationの「Demo-Bastion-Stack」スタックの出力「BastionDNSName」のURLを参照    
-  * EC2にSSHでログインし、以下のコマンドを「curl http://(Private ALBのDNS名)/api/v1/todos/」を入力するとバックエンドサービスAPのJSONレスポンスが返却
-    * CloudFormationの「ECS-SERVICE-Stack」スタックの出力「BackendServiceURI」のURLを参照
+    * VPCのパブリックサブネット上にBationのEC2を起動
+    ```sh
+    aws cloudformation validate-template --template-body file://cfn-bastion-ec2.yaml
+    aws cloudformation create-stack --stack-name Demo-Bastion-Stack --template-body file://cfn-bastion-ec2.yaml
+    ```
+
+    * 必要に応じてキーペア名等のパラメータを指定
+        * 「--parameters ParameterKey=KeyPairName,ParameterValue=myKeyPair」
+        * BastionのEC2のアドレスは、CloudFormationの「Demo-Bastion-Stack」スタックの出力「BastionDNSName」のURLを参照    
+    * EC2にSSHでログインし、以下のコマンドを「curl http://(Private ALBのDNS名)/api/v1/todos/」を入力するとバックエンドサービスAPのJSONレスポンスが返却
+        * CloudFormationの「ECS-SERVICE-Stack」スタックの出力「BackendServiceURI」のURLを参照
 
 * BFFアプリケーションの確認
-  * ブラウザで「http://(Public ALBのDNS名)」を入力しフロントエンドAPの画面が表示される
-    * CloudFormationの「ECS-SERVICE-Stack」スタックの出力「FrontendWebAppServiceURI」のURLを参照
-  * アプリケーションの操作方法は「sample-bff」のリポジトリのREADME.mdを参照
+    * ブラウザで「http://(Public ALBのDNS名)」を入力しフロントエンドAPの画面が表示される
+        * CloudFormationの「ECS-SERVICE-Stack」スタックの出力「FrontendWebAppServiceURI」のURLを参照
+    * アプリケーションの操作方法は「sample-bff」のリポジトリのREADME.mdを参照
 
 * APログの確認
-  * うまく動作しない場合、APログ等にエラーが出ていないか確認するとよい
-  * awslogsドライバの場合は、Cloud Watch Logの以下のロググループ
-    * /ecs/logs/Demo-backend-ecs-group
-    * /ecs/logs/Demo-bff-ecs-group
-  * FireLens+FluentBitの場合は、以下にログ出力
-    * Cloud Watch Log
-      * AP
-        * /ecs/logs/fluentbit-backend-group
-        * /ecs/logs/fluentbit-bff-group
-      * FluentBit（サイドカー側のコンテナ）
-        * /ecs/logs/fluentbit-backend-sidecar
-        * /ecs/logs/fluentbit-bff-sidecar
-    * S3
-      * (ログ出力用のバケット)/fluent-bit-logs/
+    * うまく動作しない場合、APログ等にエラーが出ていないか確認するとよい
+    * awslogsドライバの場合は、Cloud Watch Logの以下のロググループ
+        * /ecs/logs/Demo-backend-ecs-group
+        * /ecs/logs/Demo-bff-ecs-group
+    * FireLens+FluentBitの場合は、以下にログ出力
+        * Cloud Watch Log
+            * AP
+                * /ecs/logs/fluentbit-backend-group
+                * /ecs/logs/fluentbit-bff-group
+            * FluentBit（サイドカー側のコンテナ）
+                * /ecs/logs/fluentbit-backend-sidecar
+                * /ecs/logs/fluentbit-bff-sidecar
+        * S3
+            * (ログ出力用のバケット)/fluent-bit-logs/
 * Bastionからredis-cliでElastiCacheにアクセスしたい場合
-  * 以下参考に、redis-cliをインストールして接続するとよい
-  ```sh
-  sudo amazon-linux-extras install epel -y
-  sudo yum install gcc jemalloc-devel openssl-devel tcl tcl-devel -y
-  sudo wget http://download.redis.io/redis-stable.tar.gz
-  sudo tar xvzf redis-stable.tar.gz
-  cd redis-stable
-  sudo make BUILD_TLS=yes
+    * 以下参考に、redis-cliをインストールして接続するとよい
+```sh
+sudo amazon-linux-extras install epel -y
+sudo yum install gcc jemalloc-devel openssl-devel tcl tcl-devel -y
+sudo wget http://download.redis.io/redis-stable.tar.gz
+sudo tar xvzf redis-stable.tar.gz
+cd redis-stable
+sudo make BUILD_TLS=yes
 
-  src/redis-cli -h (ElastiCacheのEndpoint)
-  # CloudFormationの「ECS-ECACHE-Stack」スタックの出力「ElastiCachePrimaryEndPoint」
+src/redis-cli -h (ElastiCacheのEndpoint)
+# CloudFormationの「ECS-ECACHE-Stack」スタックの出力「ElastiCachePrimaryEndPoint」
 
-  > keys *  
-  ```
+> keys *  
+```
 * BastionからpsqlでAuroraにアクセスしたい場合
-  * 以下参考に、Bastionにpsqlをインストールするとよい
-    * https://techviewleo.com/how-to-install-postgresql-database-on-amazon-linux/
-  ```sh
-  sudo amazon-linux-extras install epel
+    * 以下参考に、Bastionにpsqlをインストールするとよい
+        * https://techviewleo.com/how-to-install-postgresql-database-on-amazon-linux/
+```sh
+sudo amazon-linux-extras install epel
 
-  sudo tee /etc/yum.repos.d/pgdg.repo<<EOF
-  [pgdg14]
-  name=PostgreSQL 14 for RHEL/CentOS 7 - x86_64
-  baseurl=http://download.postgresql.org/pub/repos/yum/14/redhat/rhel-7-x86_64
-  enabled=1
-  gpgcheck=0
-  EOF
-  
-  sudo yum makecache
-  sudo yum install postgresql14
-  
-  #DBに接続    
-  psql -h (Auroraのクラスタエンドポイント) -U postgres -d testdb    
-  # CloudFormationの「ECS-Aurora-Stack」スタックの出力「RDSClusterEndpointAddress」   
-  > select * from m_user;
-  > select * from todo;  
-  ```
+sudo tee /etc/yum.repos.d/pgdg.repo<<EOF
+[pgdg14]
+name=PostgreSQL 14 for RHEL/CentOS 7 - x86_64
+baseurl=http://download.postgresql.org/pub/repos/yum/14/redhat/rhel-7-x86_64
+enabled=1
+gpgcheck=0
+EOF
+
+sudo yum makecache
+sudo yum install postgresql14
+
+#DBに接続    
+psql -h (Auroraのクラスタエンドポイント) -U postgres -d testdb    
+# CloudFormationの「ECS-Aurora-Stack」スタックの出力「RDSClusterEndpointAddress」   
+> select * from m_user;
+> select * from todo;  
+```
 
 ### 6. Application AutoScalingの設定
 * 以下のコマンドで、ターゲット追跡スケーリングポリシーでオートスケーリング設定
@@ -304,17 +341,17 @@ aws cloudformation create-stack --stack-name ECS-AutoScaling-Stack --template-bo
 ```
 
 * BastionのEC2から、ApacheBench (ab) ユーティリティを使用して、ロードバランサーに短期間に大量のHTTPリクエストを送信
-  * abコマンドのインストール
-```sh
-sudo yum install httpd-tools
-```
-  * 以下のいずれかのabコマンドを実行
-```sh
-ab -n 1000000 -c 1000 http://(Private ALBのDNS名)/api/v1/todos/
-```
-```sh
-ab -n 1000000 -c 1000 http://(Public ALBのDNS名)/login
-```
+    * abコマンドのインストール
+    ```sh
+    sudo yum install httpd-tools
+    ```
+    * 以下のいずれかのabコマンドを実行
+    ```sh
+    ab -n 1000000 -c 1000 http://(Private ALBのDNS名)/api/v1/todos/
+    ```
+    ```sh
+    ab -n 1000000 -c 1000 http://(Public ALBのDNS名)/login
+    ```
 * うまくCPU使用率75%以上にならない場合は、abコマンドのパラメータを調整するか、cfn-autoscaling.yamlのCPUUtilizationの値を下げて調整する
 * 対象のECSサービスに関するCPU使用率に関するCloudWatchアラームが出ていることを確認
 * 対象のECSサービスがスケールアウトされ、1タスク追加され2タスクになっていることを確認
@@ -322,21 +359,34 @@ ab -n 1000000 -c 1000 http://(Public ALBのDNS名)/login
 ## CD環境（標準のローリングアップデートの場合）
 * ローリングアップデートの場合は、以下のコマンドを実行
 ### 1. ローリングアップデート対応のCodePipelineの作成
+* BFFアプリケーション
 ```sh
 aws cloudformation validate-template --template-body file://cfn-bff-codepipeline.yaml
 aws cloudformation create-stack --stack-name Bff-CodePipeline-Stack --template-body file://cfn-bff-codepipeline.yaml
-
-aws cloudformation validate-template --template-body file://cfn-backend-codepipeline.yaml
-aws cloudformation create-stack --stack-name Backend-CodePipeline-Stack --template-body file://cfn-backend-codepipeline.yaml
 ```
+
+* Backendアプリケーション
+    * RDBアクセス版の場合
+    ```sh
+    aws cloudformation validate-template --template-body file://cfn-backend-codepipeline.yaml
+    aws cloudformation create-stack --stack-name Backend-CodePipeline-Stack --template-body file://cfn-backend-codepipeline.yaml
+    ```
+
+    * DynamoDBアクセス版の場合
+        * パラメータ「RepositoryName」に「sample-backend-dynamodb」を指定する    
+    ```sh
+    aws cloudformation validate-template --template-body file://cfn-backend-codepipeline.yaml
+    aws cloudformation create-stack --stack-name Backend-CodePipeline-Stack --template-body file://cfn-backend-codepipeline.yaml --parameters ParameterKey=RepositoryName,ParameterValue=sample-backend-dynamodb
+    ```
 
 * Artifact用のS3バケット名を変えるには、それぞれのcfnスタック作成時のコマンドでパラメータを指定する
     * 「--parameters ParameterKey=ArtifactS3BucketName,ParameterValue=(バケット名)」
 ### 2. CodePipelineの確認
-  * CodePipelineの作成後、パイプラインが自動実行されるので、デプロイ成功することを確認する
+* CodePipelineの作成後、パイプラインが自動実行されるので、デプロイ成功することを確認する
+
 ### 3. ソースコードの変更
-  * 何らかのソースコードの変更を加えて、CodeCommitにプッシュする
-  * CodePipelineのパイプラインが実行され、新しいAPがデプロイされることを確認する
+* 何らかのソースコードの変更を加えて、CodeCommitにプッシュする
+* CodePipelineのパイプラインが実行され、新しいAPがデプロイされることを確認する
 
 ## CD環境（標準のBlueGreenデプロイメントの場合）
 * BlueGreenデプロイメントの場合は、以下のコマンドを実行
@@ -353,21 +403,33 @@ aws cloudformation create-stack --stack-name Backend-CodeDeploy-Stack --template
     * 「--parameters ParameterKey=ArtifactS3BucketName,ParameterValue=(バケット名)」  
 * 現状、テンプレート内の「DeploymentConfigName」が線形リリース（「CodeDeployDefault.ECSLinear10PercentEvery1Minutes」）になっているが、一度に切り替えたい場合は、通常のBlueGreenデプロイメント（CodeDeployDefault.ECSAllAtOnce）に変えるとよい。    
 ### 2. BlueGreenデプロイメント対応のCodePipelineの作成
+* BFFアプリケーション
 ```sh
 aws cloudformation validate-template --template-body file://cfn-bff-codepipeline-bg.yaml
 aws cloudformation create-stack --stack-name Bff-CodePipeline-BG-Stack --template-body file://cfn-bff-codepipeline-bg.yaml
-
-aws cloudformation validate-template --template-body file://cfn-backend-codepipeline-bg.yaml
-aws cloudformation create-stack --stack-name Backend-CodePipeline-BG-Stack --template-body file://cfn-backend-codepipeline-bg.yaml
 ```
+
+* Backendアプリケーション
+    * RDBアクセス版の場合
+    ```sh
+    aws cloudformation validate-template --template-body file://cfn-backend-codepipeline-bg.yaml
+    aws cloudformation create-stack --stack-name Backend-CodePipeline-BG-Stack --template-body file://cfn-backend-codepipeline-bg.yaml
+    ```
+
+    * DynamoDBアクセス版の場合
+        * パラメータ「RepositoryName」に「sample-backend-dynamodb」を指定する
+    ```sh
+    aws cloudformation validate-template --template-body file://cfn-backend-codepipeline-bg.yaml
+    aws cloudformation create-stack --stack-name Backend-CodePipeline-BG-Stack --template-body file://cfn-backend-codepipeline-bg.yaml --parameters ParameterKey=RepositoryName,ParameterValue=sample-backend-dynamodb
+    ```
 
 * Artifact用のS3バケット名を変えるには、それぞれのcfnスタック作成時のコマンドでパラメータを指定する
     * 「--parameters ParameterKey=ArtifactS3BucketName,ParameterValue=(バケット名)」
 ### 3. CodePipelineの確認
-  * CodePipelineの作成後、パイプラインが自動実行されるので、デプロイ成功することを確認する
+* CodePipelineの作成後、パイプラインが自動実行されるので、デプロイ成功することを確認する
 ### 4. ソースコードの変更
-  * 何らかのソースコードの変更を加えて、CodeCommitにプッシュする
-  * CodePipelineのパイプラインが実行され、新しいAPがデプロイされることを確認する
+* 何らかのソースコードの変更を加えて、CodeCommitにプッシュする
+* CodePipelineのパイプラインが実行され、新しいAPがデプロイされることを確認する
 
 ## （参考）CloudFormationコマンド文法メモ
 * スタックの新規作成
