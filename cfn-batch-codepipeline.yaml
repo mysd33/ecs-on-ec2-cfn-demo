@@ -1,0 +1,114 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: CodePipeline Template for CloudFormation Demo. Depends on cfn-iam.yaml, cfn-batch-codebuild.yaml, cfn-ecs-cluster.yaml, cfn-ecs-service.yaml
+#Metadata: 
+
+Parameters: 
+  StackPrefix:
+    Description: Stack Resource Name Prefix
+    Type: String
+    Default: Demo
+  BranchName:
+    Description: CodeCommit branch name
+    Type: String
+    Default: master
+  RepositoryName:
+    Description: CodeComit repository name
+    Type: String
+    Default: sample-batch
+  PipelineName:  
+    Description: CodePipeline name
+    Type: String
+    Default: demo-batch-pipeline
+  ArtifactS3BucketName:
+    Description: Artifact Location of S3 Bucket
+    Type: String
+    Default: mysd33bucket123    
+#Mappings: 
+
+#Conditions: 
+
+Resources:
+  #Cloud Watch Event Rule                
+  CloudWatchEventRule:
+    Type: 'AWS::Events::Rule'
+    Properties:
+      EventPattern:
+        source:
+          - aws.codecommit
+        detail-type:
+          - CodeCommit Repository State Change
+        resources:
+          - !Sub arn:aws:codecommit:${AWS::Region}:${AWS::AccountId}:${RepositoryName}
+        detail:
+          event:
+            - referenceCreated
+            - referenceUpdated
+          referenceType:
+            - branch
+          referenceName:
+            - master
+      Targets:
+        - Arn: !Sub arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${BatchCodePipeline}
+          RoleArn:
+            Fn::ImportValue: !Sub ${StackPrefix}-CodePipelineCloudWatchEventRole-Arn
+          Id: codepipeline-BatchCodePipeline
+
+  BatchCodePipeline:
+    Type: AWS::CodePipeline::Pipeline
+    Properties:
+      Name: !Ref PipelineName
+      RoleArn:
+        Fn::ImportValue: !Sub ${StackPrefix}-CodePipelineServiceRole-Arn
+      ArtifactStore:
+        Type: S3
+        Location: !Ref ArtifactS3BucketName      
+      Stages: 
+        - Name: Source
+          Actions:
+            - Name: SourceAction
+              ActionTypeId:
+                Category: Source
+                Owner: AWS
+                Provider: CodeCommit
+                Version: "1"
+              Configuration:
+                BranchName: !Ref BranchName
+                RepositoryName: !Ref RepositoryName
+                PollForSourceChanges: false                
+              OutputArtifacts:
+                - Name: SourceArtifact
+              RunOrder: 1
+        - Name: Build
+          Actions:
+            - Name: BuildAction
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Provider: CodeBuild
+                Version: "1"              
+              Configuration:              
+                ProjectName:
+                  Fn::ImportValue: !Sub ${StackPrefix}-Batch-CodeBuildProjectName
+              InputArtifacts:
+                - Name: SourceArtifact
+              OutputArtifacts:
+                - Name: BuildArtifact
+              RunOrder: 1
+#TODO Approval Stage 
+
+        - Name: Deploy
+          Actions:
+            - Name: DeployAction
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Provider: ECS
+                Version: "1"              
+              Configuration:
+                ClusterName: 
+                  Fn::ImportValue: !Sub ${StackPrefix}-Batch-ECSCluster-Name
+                ServiceName:
+                  Fn::ImportValue: !Sub ${StackPrefix}-BatchAppService-Name
+              InputArtifacts:
+                - Name: BuildArtifact
+              RunOrder: 1 

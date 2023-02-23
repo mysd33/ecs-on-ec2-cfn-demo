@@ -13,7 +13,7 @@ Parameters:
 #Conditions: 
 
 Resources:
-# VPC Endoint for DynamoDB
+# DynamoDB VPC Endoint 
   DynamoDBEndpoint:
     Type: AWS::EC2::VPCEndpoint
     Properties:
@@ -24,7 +24,7 @@ Resources:
       RouteTableIds:
         - Fn::ImportValue: !Sub ${StackPrefix}-PrivateRouteTableId
         
-# VPC Endpoint for S3
+# S3 VPC Endpoint
   S3VPCEndpoint:
     Type: AWS::EC2::VPCEndpoint
     Properties:      
@@ -35,7 +35,22 @@ Resources:
       RouteTableIds:
         - Fn::ImportValue: !Sub ${StackPrefix}-PrivateRouteTableId
 
-# VPC Endpoint for CloudWatch Logs
+# SQS VPC Endpoint
+  SQSVPCEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:      
+      VpcEndpointType: Interface
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.sqs
+      SubnetIds:
+        - Fn::ImportValue: !Sub ${StackPrefix}-PrivateSubnetOneId
+        - Fn::ImportValue: !Sub ${StackPrefix}-PrivateSubnetTwoId
+      VpcId: 
+        Fn::ImportValue: !Sub ${StackPrefix}-VPC-ID          
+      SecurityGroupIds: 
+        - Fn::ImportValue: !Sub ${StackPrefix}-VPCEndpointSecurityGroup-ID                      
+      PrivateDnsEnabled: true
+
+# CloudWatch Logs VPC Endpoint
   CloudWatchLogsVPCEndpoint:
     Type: AWS::EC2::VPCEndpoint
     Properties:      

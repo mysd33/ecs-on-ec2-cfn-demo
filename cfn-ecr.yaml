@@ -17,6 +17,10 @@ Parameters:
     Type: String
     #Default: mynavi-sample-ecs-backend
     Default: sample-backend
+  BatchRepositoryName:
+    Description: Batch App Repository Name
+    Type: String    
+    Default: sample-batch
   BffFluentBitRepositoryName:
     Description: Bff Sidecar Fluent Bit Repository Name
     Type: String
@@ -25,6 +29,10 @@ Parameters:
     Description: Backend Sidecar Fluent Bit Repository Name
     Type: String
     Default: fluent-bit-backend
+  BatchFluentBitRepositoryName:
+    Description: Batch Sidecar Fluent Bit Repository Name
+    Type: String
+    Default: fluent-bit-batch
   XRayDaemonRepositoryName:
     Description: X-Ray Daemon Repository Name
     Type: String
@@ -50,6 +58,13 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub ${StackPrefix}-BackendECRRepository
+  BatchECRRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: !Ref BatchRepositoryName
+      Tags:
+        - Key: Name
+          Value: !Sub ${StackPrefix}-BatchECRRepository
   #Repository for Sidecar FluentBit
   BffFluentBitECRRepository:
     Type: AWS::ECR::Repository
@@ -64,7 +79,14 @@ Resources:
       RepositoryName: !Ref BackendFluentBitRepositoryName
       Tags:
         - Key: Name
-          Value: !Sub ${StackPrefix}-BackFluentBitECRRepository
+          Value: !Sub ${StackPrefix}-BackendFluentBitECRRepository
+  BatchFluentBitECRRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: !Ref BatchFluentBitRepositoryName
+      Tags:
+        - Key: Name
+          Value: !Sub ${StackPrefix}-BatchFluentBitECRRepository          
   XRayDaemonECRRepository:
     Type: AWS::ECR::Repository
     Properties:
@@ -89,6 +111,14 @@ Outputs:
     Value: !GetAtt BackendECRRepository.RepositoryUri
     Export:
       Name: !Sub ${StackPrefix}-BackendECRRepositoryUri
+  BatchECRRepositoryArn:
+    Description: Batch App Repository Arn
+    Value: !GetAtt BatchECRRepository.Arn    
+  BatchECRRepositoryUri:
+    Description: Batch App Repository URI
+    Value: !GetAtt BatchECRRepository.RepositoryUri
+    Export:
+      Name: !Sub ${StackPrefix}-BatchECRRepositoryUri      
   BffFluentBitECRRepositoryArn:
     Description: Bff Sidecar Fluent Bit Repository Arn
     Value: !GetAtt BffFluentBitECRRepository.Arn    
@@ -105,6 +135,14 @@ Outputs:
     Value: !GetAtt BackendFluentBitECRRepository.RepositoryUri
     Export:
       Name: !Sub ${StackPrefix}-BackendFluentBitECRRepositoryUri      
+  BatchFluentBitECRRepositoryArn:
+    Description: Batch Sidecar Fluent Bit Repository Arn
+    Value: !GetAtt BatchFluentBitECRRepository.Arn    
+  BatchFluentBitECRRepositoryUri:
+    Description:  Batch Sidecar Fluent Bit Repository URI
+    Value: !GetAtt BatchFluentBitECRRepository.RepositoryUri
+    Export:
+      Name: !Sub ${StackPrefix}-BatchFluentBitECRRepositoryUri  
   XRayDaemonECRRepositoryArn:  
     Description: X-Ray Daemon Repository Arn
     Value: !GetAtt XRayDaemonECRRepository.Arn    

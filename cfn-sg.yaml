@@ -132,6 +132,15 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub ${StackPrefix}-PrivECS-SG  
+  BatchECSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Batch SecurityGroup
+      VpcId:
+        Fn::ImportValue: !Sub ${StackPrefix}-VPC-ID
+      Tags:
+        - Key: Name
+          Value: !Sub ${StackPrefix}-BatchECS-SG          
   # Security Group of ElastiCache
   ECacheSecurityGroup:
     Type: AWS::EC2::SecurityGroup
@@ -170,7 +179,12 @@ Resources:
           IpProtocol: tcp
           FromPort: 5432
           ToPort: 5432
-          Description: Ingress from the Private ECS           
+          Description: Ingress from the Private ECS     
+        - SourceSecurityGroupId: !Ref BatchECSSecurityGroup
+          IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          Description: Ingress from the Batch ECS                    
         - SourceSecurityGroupId: !Ref BastionSecurityGroup
           IpProtocol: tcp
           FromPort: 5432
@@ -211,6 +225,11 @@ Outputs:
     Value:  !Ref PrivateECSSecurityGroup
     Export: 
       Name: !Sub ${StackPrefix}-PrivateECSSecurityGroup-ID
+  BatchECSSecurityGroupID:
+    Description: BatchECSSecurityGroup ID
+    Value:  !Ref BatchECSSecurityGroup
+    Export: 
+      Name: !Sub ${StackPrefix}-BatchECSSecurityGroup-ID      
   ECacheSecurityGroupID:
     Description: ElastiCache ID
     Value:  !Ref ECacheSecurityGroup

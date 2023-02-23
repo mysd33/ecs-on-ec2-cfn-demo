@@ -49,6 +49,19 @@ Mappings:
       "DesiredCount": 1
       "ContainerName" : "ecsdemo-frontend-app"
       "ContainerPort" : 8080 
+  BatchAppMap:
+    Production:
+      "DesiredCount": 1
+      "ContainerName" : "ecsdemo-batch-app"
+      "ContainerPort" : 8080
+    Staging:
+      "DesiredCount": 1
+      "ContainerName" : "ecsdemo-batch-app"
+      "ContainerPort" : 8080
+    Dev:
+      "DesiredCount": 1
+      "ContainerName" : "ecsdemo-batch-app"
+      "ContainerPort" : 8080 
 
 Conditions: 
   IsRollingUpdate: !Equals 
@@ -133,7 +146,35 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub ${StackPrefix}-BackendService
-
+  BatchAppService:
+    Type: AWS::ECS::Service
+    Properties:
+      ServiceName: !Sub ${StackPrefix}-BatchAppService
+      Cluster:
+        Fn::ImportValue: !Sub ${StackPrefix}-Batch-ECSCluster
+      DesiredCount: !FindInMap [BatchAppMap, !Ref EnvironmentType, DesiredCount]      
+      TaskDefinition:
+        Fn::ImportValue: !Sub ${StackPrefix}-BatchECS-TaskDefinition
+      LaunchType: EC2
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED
+          SecurityGroups:
+            - Fn::ImportValue: !Sub ${StackPrefix}-BatchECSSecurityGroup-ID          
+          Subnets:
+            - Fn::ImportValue: !Sub ${StackPrefix}-PrivateSubnetOneId
+            - Fn::ImportValue: !Sub ${StackPrefix}-PrivateSubnetTwoId 
+      # Batch App Rolling Update Support Only
+      DeploymentController:
+        Type: ECS
+      DeploymentConfiguration:        
+        DeploymentCircuitBreaker:         
+          Enable: true
+          Rollback: true
+        MinimumHealthyPercent: !Ref RollingUpdateMinimumHealthyPercent        
+      Tags:
+        - Key: Name
+          Value: !Sub ${StackPrefix}-BatchAppService
 Outputs:
   FrontendWebAppService:
     Description: Frontend ECS Service
@@ -179,3 +220,13 @@ Outputs:
         - ""
         - - "http://"
           - Fn::ImportValue: !Sub ${StackPrefix}-PrivALB-DNS 
+  BatchAppService:
+    Description: Batch ECS Service
+    Value: !Ref BatchAppService
+    Export:
+      Name: !Sub ${StackPrefix}-BatchAppService
+  BatchAppServiceName:
+    Description: Batch ECS Service Name
+    Value: !Sub ${StackPrefix}-BatchAppService
+    Export:
+      Name: !Sub ${StackPrefix}-BatchAppService-Name          

@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: ECS Cluster Template for CloudFormation Demo. Depends on cfn-vpc.yaml, cfn-vpe.yaml, cfn-ngw.yaml, cfn-sg.yaml, cfn-iam.yaml
+Description: ECS Cluster Template for CloudFormation Demo. 
 
 #Metadata:
 
@@ -51,7 +51,22 @@ Mappings:
       "DesiredCapacity": 1
       "EC2InstanceMaxSizeOfECS": 3
       "KeyPairName": "myKeyPair"
-
+  BatchClusterDefinitionMap:
+    Production:
+      "InstanceType": "r4.large"
+      "DesiredCapacity": 1
+      "EC2InstanceMaxSizeOfECS": 3
+      "KeyPairName": "myKeyPair"
+    Staging:
+      "InstanceType": "r4.large"
+      "DesiredCapacity": 1
+      "EC2InstanceMaxSizeOfECS": 3
+      "KeyPairName": "myKeyPair"
+    Dev:
+      "InstanceType": "r4.large"
+      "DesiredCapacity": 1
+      "EC2InstanceMaxSizeOfECS": 3
+      "KeyPairName": "myKeyPair"
 #Conditions:
 
 Resources:
@@ -71,8 +86,10 @@ Resources:
     Type: AWS::AutoScaling::AutoScalingGroup
     Properties:
       VPCZoneIdentifier:
-        - Fn::ImportValue: !Sub ${StackPrefix}-PublicSubnetOneId
-        - Fn::ImportValue: !Sub ${StackPrefix}-PublicSubnetTwoId      
+#        - Fn::ImportValue: !Sub ${StackPrefix}-PublicSubnetOneId
+#        - Fn::ImportValue: !Sub ${StackPrefix}-PublicSubnetTwoId
+        - Fn::ImportValue: !Sub ${StackPrefix}-PrivateSubnetOneId
+        - Fn::ImportValue: !Sub ${StackPrefix}-PrivateSubnetTwoId                
       LaunchConfigurationName: !Ref FrontendECSLaunchConfiguration  
       MinSize: '0'
       MaxSize: !FindInMap [FrontendClusterDefinitionMap, !Ref EnvironmentType, EC2InstanceMaxSizeOfECS]
@@ -157,11 +174,63 @@ Resources:
           echo ECS_CLUSTER=${BackendECSCluster} >> /etc/ecs/ecs.config
           yum install -y aws-cfn-bootstrap
           /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource BackendECSAutoScalingGroup --region ${AWS::Region}          
-  
+
+  #ECS Cluster for Batch
+  BatchECSCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: !Sub ${StackPrefix}-Batch-Cluster
+      ClusterSettings:
+        - Name: containerInsights
+          Value: enabled
+      Tags:
+        - Key: Name
+          Value: !Sub ${StackPrefix}-Batch-Cluster
+  #AutoScalingGroup for Batch
+  BatchECSAutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      VPCZoneIdentifier:
+        - Fn::ImportValue: !Sub ${StackPrefix}-PrivateSubnetOneId
+        - Fn::ImportValue: !Sub ${StackPrefix}-PrivateSubnetTwoId        
+      LaunchConfigurationName: !Ref BatchECSLaunchConfiguration  
+      MinSize: '0'
+      MaxSize: !FindInMap [BatchClusterDefinitionMap, !Ref EnvironmentType, EC2InstanceMaxSizeOfECS]
+      DesiredCapacity: !FindInMap [BatchClusterDefinitionMap, !Ref EnvironmentType, DesiredCapacity]
+      Tags:
+        - Key: Name
+          Value: !Sub ${StackPrefix}-Batch-ASG
+          PropagateAtLaunch: true
+    CreationPolicy:
+      ResourceSignal:
+        Timeout: PT5M
+    UpdatePolicy:
+      AutoScalingReplacingUpdate:
+        WillReplace: true          
+
+  #ECS AutoScaling LaunchConfiguration for Batch
+  BatchECSLaunchConfiguration:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Properties:
+      ImageId: !Ref ECSAMI
+      InstanceType: !FindInMap [BatchClusterDefinitionMap, !Ref EnvironmentType, InstanceType]      
+      IamInstanceProfile:
+        Fn::ImportValue: !Sub ${StackPrefix}-ECSIamInstanceProfile-ID
+      KeyName: !FindInMap [BatchClusterDefinitionMap, !Ref EnvironmentType, KeyPairName]
+      SecurityGroups:      
+        - Fn::ImportValue: !Sub ${StackPrefix}-BatchECSSecurityGroup-ID 
+#      AssociatePublicIpAddress: true
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash -xe
+          echo ECS_CLUSTER=${BatchECSCluster} >> /etc/ecs/ecs.config
+          yum install -y aws-cfn-bootstrap
+          /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource BatchECSAutoScalingGroup --region ${AWS::Region}          
+    
 
 Outputs:
   FrontendECSCluster:
-    Description: Frontend ECS Cluster
+    Description: Frontend ECS Cluster ID
     Value: !Ref FrontendECSCluster
     Export:
       Name: !Sub ${StackPrefix}-Frontend-ECSCluster
@@ -171,7 +240,7 @@ Outputs:
     Export:
       Name: !Sub ${StackPrefix}-Frontend-ECSCluster-Name
   BackendECSCluster:
-    Description: Backend ECS Cluster
+    Description: Backend ECS Cluster ID
     Value: !Ref BackendECSCluster
     Export:
       Name: !Sub ${StackPrefix}-Backend-ECSCluster
@@ -180,3 +249,13 @@ Outputs:
     Value: !Sub ${StackPrefix}-Backtend-Cluster
     Export:
       Name: !Sub ${StackPrefix}-Backend-ECSCluster-Name
+  BatchECSCluster:
+    Description: Batch ECS Cluster ID
+    Value: !Ref BatchECSCluster
+    Export:
+      Name: !Sub ${StackPrefix}-Batch-ECSCluster
+  BatchECSClusterName:
+    Description: Batch ECS Cluster Name
+    Value: !Sub ${StackPrefix}-Batch-Cluster
+    Export:
+      Name: !Sub ${StackPrefix}-Batch-ECSCluster-Name      
