@@ -11,10 +11,14 @@ Parameters:
     Description: ElastiCache for Redis Engine Version
     Type: String
     Default: 6.2
-  ECacheParameterGroupName:
-    Description: ElastiCache ParameterGroup Name
+#  ECacheParameterGroupName:
+#    Description: ElastiCache ParameterGroup Name
+#    Type: String
+#    Default: default.redis6.x
+  ECacheParameterGroupFamilyName:
+    Description: ElastiCache ParameterGroup Family Name
     Type: String
-    Default: default.redis6.x
+    Default: redis6.x
   ECacheInstanceType:
     Description: ElastiCache instance type
     Type: String
@@ -31,6 +35,13 @@ Parameters:
 #Conditions: 
 
 Resources: 
+  ElastiCacheParameterGroup:
+    Type: AWS::ElastiCache::ParameterGroup
+    Properties:
+      CacheParameterGroupFamily: !Ref ECacheParameterGroupFamilyName
+      Description: ElastiCache ParameterGroup
+      Properties:
+        notify-keyspace-events: gxE
   ElastiCacheSubnetGroup:
     Type: AWS::ElastiCache::SubnetGroup
     Properties:
@@ -44,7 +55,8 @@ Resources:
     Properties:
       AutomaticFailoverEnabled: true
       CacheNodeType: !Ref ECacheInstanceType      
-      CacheParameterGroupName: !Ref ECacheParameterGroupName
+      #CacheParameterGroupName: !Ref ECacheParameterGroupName
+      CacheParameterGroupName: !Ref ElastiCacheParameterGroup
       CacheSubnetGroupName: !Ref ElastiCacheSubnetGroup
       Engine: redis
       EngineVersion: !Ref ECacheEngineVersion

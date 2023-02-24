@@ -3,7 +3,7 @@
 ## 構成
 * システム構成図
     * RDB(Aurora for Postgres)のみ版
-        * SpringBootを用いた、BFFアプリケーション、Backendアプリケーション、BatchアプリケーョンをECS上に実現した構成が構築される。
+        * SpringBootを用いた、BFFアプリケーション、Backendアプリケーション、BatchアプリケーションをECS上に実現した構成が構築される。
         * 通常は、DBとして、RDB(Aurora for Postgres)のみを使用した構成となっている。
         * なお、上図はECSからのAPログ転送にCloudWatch Logs（awslogsドライバ）を利用した場合の例記載しているが、後述の通り、FireLens+Fluent Bitによるログ転送にも対応している。           
 ![システム構成図](img/ecs.png)    
@@ -212,6 +212,8 @@ aws cloudformation create-stack --stack-name ECS-NATGW-Stack --template-body fil
 ### 1. ElastiCache for Redisのクラスタ作成
 * BFFのAP(sample-bff)ではHTTPセッションを扱うがスケールイン/アウトにも対応できるようセッションを外部化し管理するために、ElasticCache for Redis（クラスタモード無効）を作成する。
     * 作成にしばらく時間がかかる。
+    * RedisのKeyspace-Notificationを有効化して、キーの有効期限切れ（セッションタイムアウト）の検知ができるようにするため、パラメータグループに「notify-keyspace-events: gxE」指定
+        * https://aws.amazon.com/jp/premiumsupport/knowledge-center/elasticache-redis-keyspace-notifications/
 ```sh
 aws cloudformation validate-template --template-body file://cfn-ecache-redis.yaml
 aws cloudformation create-stack --stack-name ECS-ECACHE-Stack --template-body file://cfn-ecache-redis.yaml
