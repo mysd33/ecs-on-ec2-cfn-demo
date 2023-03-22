@@ -25,7 +25,7 @@ Parameters:
     Type: String
     Default: demo-backend-ci
   BackendCodeCommitRepositoryName:
-    Description: Source Code Repository Location of CodeCommit
+    Description: Backend Source Code Repository Location of CodeCommit
     Type: String
     Default: sample-backend
     #Default: backend
@@ -38,13 +38,25 @@ Parameters:
     Type: String
     Default: demo-batch-ci
   BatchCodeCommitRepositoryName:
-    Description: Source Code Repository Location of CodeCommit
+    Description: Batch Source Code Repository Location of CodeCommit
     Type: String
     Default: sample-batch    
   BatchCodePipelineName:
     Description: Batch CodePipeline Name
     Type: String
     Default: demo-batch-pipeline
+  ScheduleLaunchCodeBuildProjectName:
+    Description: ScheduleLaunch CodeBuild Project Name
+    Type: String
+    Default: demo-schedulelaunch-ci
+  ScheduleLaunchCodeCommitRepositoryName:
+    Description: ScheduleLaunch Source Code Repository Location of CodeCommit
+    Type: String
+    Default: sample-schedulelaunch    
+  ScheduleLaunchCodePipelineName:
+    Description: ScheduleLaunch CodePipeline Name
+    Type: String
+    Default: demo-schedulelaunch-pipeline
   ArtifactS3BucketName:
     Description: Artifact Location of S3 Bucket
     Type: String
@@ -146,6 +158,28 @@ Resources:
         - Key: Name
           Value: !Sub ${StackPrefix}-BatchECSTaskRole
 
+  #IAM Role for ScheduleLaunch ECS Task
+  ScheduleLaunchECSTaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Path: /
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+      ManagedPolicyArns:
+        #For X-Ray
+        - arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess      
+        #For FireLens  & S3 Access by App
+        #TODO: Review Required Actions of Policy
+        - arn:aws:iam::aws:policy/AmazonS3FullAccess   
+        - arn:aws:iam::aws:policy/CloudWatchLogsFullAccess
+      Tags:
+        - Key: Name
+          Value: !Sub ${StackPrefix}-ScheduleLaunchECSTaskRole
+
   #IAM Policy for SQS Access
   SQSAccessPolicy:
     Type: AWS::IAM::Policy
@@ -165,6 +199,7 @@ Resources:
       Roles:
       - !Ref FrontendECSTaskRole
       - !Ref BatchECSTaskRole
+      - !Ref ScheduleLaunchECSTaskRole
 
   #IAM Policy for DynamoDB Access
   DynamoDBAccessPolicy:
@@ -255,6 +290,20 @@ Resources:
         - Key: Name
           Value: !Sub ${StackPrefix}-ECSApplicationAutoScalingRole       
 
+  #IAM Role for ECS Scheduled Task
+  ECSEventRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Path: /      
+      AssumeRolePolicyDocument: 
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceEventsRole
+
   #IAM Role and IAM Policy for CodeBuild
   CodeBuildRole:
     Type: AWS::IAM::Role
@@ -287,6 +336,8 @@ Resources:
           - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${BackendCodeBuildProjectName}:*          
           - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${BatchCodeBuildProjectName}
           - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${BatchCodeBuildProjectName}:*
+          - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${ScheduleLaunchCodeBuildProjectName}
+          - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${ScheduleLaunchCodeBuildProjectName}:*
         - Action:
           - codecommit:GitPull
           Effect: Allow
@@ -294,6 +345,7 @@ Resources:
             - !Sub arn:aws:codecommit:${AWS::Region}:${AWS::AccountId}:${BffCodeCommitRepositoryName}
             - !Sub arn:aws:codecommit:${AWS::Region}:${AWS::AccountId}:${BackendCodeCommitRepositoryName}            
             - !Sub arn:aws:codecommit:${AWS::Region}:${AWS::AccountId}:${BatchCodeCommitRepositoryName}                        
+            - !Sub arn:aws:codecommit:${AWS::Region}:${AWS::AccountId}:${ScheduleLaunchCodeCommitRepositoryName}                                    
         - Action:
           - ecr:BatchCheckLayerAvailability
           - ecr:CompleteLayerUpload
@@ -364,6 +416,7 @@ Resources:
                   - !Sub arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${BackendCodePipelineName}
                   - !Sub arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${BffCodePipelineName}
                   - !Sub arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${BatchCodePipelineName}                  
+                  - !Sub arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${ScheduleLaunchCodePipelineName}                                    
   
   #IAM Role and IAM Policy for CodePipeline
   #TODO: Review Required Actions of Policy Document
@@ -429,11 +482,21 @@ Outputs:
     Value: !GetAtt BatchECSTaskRole.Arn
     Export: 
       Name: !Sub ${StackPrefix}-BatchECSTaskRole-Arn  
+  ScheduleLaunchECSTaskRoleArn:
+    Description: ScheduleLaunchECSTaskRole Arn
+    Value: !GetAtt ScheduleLaunchECSTaskRole.Arn
+    Export: 
+      Name: !Sub ${StackPrefix}-ScheduleLaunchECSTaskRole-Arn  
   ECSTaskExecutionRoleArn:
     Description: ECSTaskExecutionRole Arn
     Value: !GetAtt ECSTaskExecutionRole.Arn
     Export: 
       Name: !Sub ${StackPrefix}-ECSTaskExecutionRole-Arn 
+  ECSEventRoleArn:
+    Description: ECSEventRole Arn
+    Value: !GetAtt ECSEventRole.Arn
+    Export: 
+      Name: !Sub ${StackPrefix}-ECSEventRole-Arn       
   ECSApplicationAutoScalingRoleArn:
     Description: ECS ApplicationAutoScalingRole Arn
     Value: !GetAtt ECSApplicationAutoScalingRole.Arn

@@ -3,7 +3,7 @@
 ## 構成
 * システム構成図
     * RDB(Aurora for Postgres)のみ版
-        * SpringBootを用いた、BFFアプリケーション、Backendアプリケーション、BatchアプリケーションをECS上に実現した構成が構築される。
+        * SpringBootを用いた、BFFアプリケーション、Backendアプリケーション、バッチアプリケーション、スケジュールバッチ起動アプリケーションをECS上に実現した構成が構築される。
         * 通常は、DBとして、RDB(Aurora for Postgres)のみを使用した構成となっている。
         * なお、上図はECSからのAPログ転送にCloudWatch Logs（awslogsドライバ）を利用した場合の例記載しているが、後述の通り、FireLens+Fluent Bitによるログ転送にも対応している。           
 ![システム構成図](img/ecs.png)    
@@ -13,13 +13,17 @@
 ![システム構成図](img/ecs-dynamodb.png)      
 
 * 処理方式
-    * オンライン処理方式
+    * オンラインリアルタイム処理方式
         * BFFアプリケーションからBackendアプリケーションがAPI連携しつつユーザへUIを提供するオンラインリアルタイム処理を実現した構成が構築される
 ![オンラインリアルタイム処理イメージ](img/ecs-online.png) 
+    * ディレード処理方式    
+        * BFFアプリケーションから、SQSを介したメッセージ連携により、バッチアプリケーションのジョブを非同期で実行するディレード処理にも対応している。
+![ディレード処理イメージ](img/ecs-delayed.png) 
 
-    * バッチ処理方式    
-        * また、BFFアプリケーションから、SQSを介したメッセージ連携により、Batchアプリケーションを非同期実行でジョブを実行するディレードや準バッチ処理にも対応している。
-![ディレード処理イメージ](img/ecs-batch.png) 
+    * 純バッチ処理方式    
+        * スケジュールイベント（EventBridge）により起動したスケジュールバッチ起動用アプリーションから、SQSを介したメッセージ連携により、バッチアプリケーションのジョブを実行する純バッチ処理にも対応している。 
+![純バッチ処理イメージ](img/ecs-batch.png) 
+
 
 * CI/CD
     * CodePipeline、CodeBuild、CodeDeployを使った、CI/CDに対応。
@@ -50,7 +54,7 @@
 ### S3バケットの作成
 * 以下の目的に利用するS3バケットを用意しておく。1つでも、目的ごと別々に３つ用意してもよい。
     * CodePipeline、CodeBuildのArtifact用、キャッシュ用のS3バケット
-    * BFFアプリケーション、Batchアプリケーションでファイルを連携するためのS3バケット
+    * BFFアプリケーション、バッチアプリケーションでファイルを連携するためのS3バケット
     * （FireLensを利用する場合）ログ出力のS3バケット
 * 後続の手順で、バケット名を変更するパラメータがあるところで指定する
 ## CloudFormationのコマンドの実行
@@ -94,13 +98,16 @@ aws cloudformation create-stack --stack-name ECS-IAM-Stack --template-body file:
         * バッチAP
         * Githubに同名の資材があるので、これをCodeCommitに格納する
             * [sample-batch](https://github.com/mysd33/sample-batch)
-
+    * sample-schedulelaunch
+        * スケジュールバッチ起動AP
+        * Githubに同名の資材があるので、これをCodeCommitに格納する
+            * [sample-schedulelaunch](https://github.com/mysd33/sample-schedulelaunch)
 ### 2. ECRの作成
 ```sh
 aws cloudformation validate-template --template-body file://cfn-ecr.yaml
 aws cloudformation create-stack --stack-name ECR-Stack --template-body file://cfn-ecr.yaml
 ```
-* 3つのSpringBootAP用のリポジトリと、X-Rayデーモン用のリポジトリ、ログ転送にFireLens利用時のFluentBit用のリポジトリが作成される。
+* 4つのSpringBootAP用のリポジトリと、X-Rayデーモン用のリポジトリ、ログ転送にFireLens利用時の各AP向けFluentBit用のリポジトリが作成される。
 ### 3. CodeBuildのプロジェクト作成
 * BFFアプリケーション
 ```sh
@@ -122,10 +129,16 @@ aws cloudformation create-stack --stack-name BFF-CodeBuild-Stack --template-body
     aws cloudformation create-stack --stack-name Backend-CodeBuild-Stack --template-body file://cfn-backend-codebuild.yaml --parameters ParameterKey=RepositoryName,ParameterValue=sample-backend-dynamodb
     ```
 
-* Batchアプリケーション
+* バッチアプリケーション
 ```sh
 aws cloudformation validate-template --template-body file://cfn-batch-codebuild.yaml
 aws cloudformation create-stack --stack-name Batch-CodeBuild-Stack --template-body file://cfn-batch-codebuild.yaml
+```
+
+* スケジュールバッチ起動用アプリケーション
+```sh
+aws cloudformation validate-template --template-body file://cfn-schedulelaunch-codebuild.yaml
+aws cloudformation create-stack --stack-name ScheduleLaunch-CodeBuild-Stack --template-body file://cfn-schedulelaunch-codebuild.yaml
 ```
 
 * Artifact用のS3バケット名を変えるには、それぞれのcfnスタック作成時のコマンドでパラメータを指定する
@@ -138,7 +151,7 @@ aws cloudformation create-stack --stack-name Batch-CodeBuild-Stack --template-bo
 
 
 ### 4. ECRへアプリケーションの最初のDockerイメージをプッシュ
-* 2つのCodeBuildプロジェクトが作成されるので、それぞれビルド実行し、ECRにDockerイメージをプッシュさせる。
+* 4つのCodeBuildプロジェクトが作成されるので、それぞれビルド実行し、ECRにDockerイメージをプッシュさせる。
 
 
 ### 5. X-RayデーモンのDockerイメージプッシュ
@@ -177,6 +190,11 @@ docker push %AWS_ACCOUNT_ID%.dkr.ecr.%AWS_REGION%.amazonaws.com/fluent-bit-backe
 docker build -t fluent-bit-batch -f DockerFileForBatch .
 docker tag fluent-bit-batch:latest %AWS_ACCOUNT_ID%.dkr.ecr.%AWS_REGION%.amazonaws.com/fluent-bit-batch:latest
 docker push %AWS_ACCOUNT_ID%.dkr.ecr.%AWS_REGION%.amazonaws.com/fluent-bit-batch:latest
+```
+```sh
+docker build -t fluent-bit-schedulelaunch -f DockerFileForScheduleLaunch .
+docker tag fluent-bit-schedulelaunch:latest %AWS_ACCOUNT_ID%.dkr.ecr.%AWS_REGION%.amazonaws.com/fluent-bit-schedulelaunch:latest
+docker push %AWS_ACCOUNT_ID%.dkr.ecr.%AWS_REGION%.amazonaws.com/fluent-bit-schedulelaunch:latest
 ```
 
 ## ネットワーク環境構築
@@ -306,7 +324,15 @@ aws cloudformation validate-template --template-body file://cfn-ecs-service.yaml
 aws cloudformation create-stack --stack-name ECS-SERVICE-Stack --template-body file://cfn-ecs-service.yaml --parameters ParameterKey=DeployType,ParameterValue=CODE_DEPLOY
 ```
 
-### 5. APの実行確認
+### 5. ECS Scheduled Taskの起動
+* スタックが作成されると、1分ごとにスケジュールバッチ起動用アプリケーションのコンテナが起動する
+    * サンプルAPの仕様上、バッチ起動するごとに登録データが増えていくので、動作確認できたらスタック削除するとよい。
+```sh
+aws cloudformation validate-template --template-body file://cfn-ecs-scheduleevent.yaml
+aws cloudformation create-stack --stack-name ECS-SCHEDULE-EVENT-Stack --template-body file://cfn-ecs-scheduleevent.yaml
+```
+
+### 6. APの実行確認
 * Backendアプリケーションの確認  
     * VPCのパブリックサブネット上にBationのEC2を起動
     ```sh
@@ -325,22 +351,31 @@ aws cloudformation create-stack --stack-name ECS-SERVICE-Stack --template-body f
         * CloudFormationの「ECS-SERVICE-Stack」スタックの出力「FrontendWebAppServiceURI」のURLを参照
     * アプリケーションの操作方法は「sample-bff」のリポジトリのREADME.mdを参照
 
+* バッチアプリケーションの確認
+    * ディレード処理については、BFFアプリケーションの「Todo一括登録」を操作することで、バッチアプリケーションのジョブjob003が実行される。
+        * アプリケーションの操作方法は「sample-batch」のリポジトリのREADME.mdを参照
+    * 純バッチ処理については、スケジュールバッチ起動用アプリケーションが定期実行され、sample-batchのジョブが実行される。
+        * 1分毎にイベントが起動し、アプリケーションが実行され、スケジュール定義SB_001をもとにジョブjob001が起動する。
+
 * APログの確認
     * うまく動作しない場合、APログ等にエラーが出ていないか確認するとよい
     * awslogsドライバの場合は、Cloud Watch Logの以下のロググループ
         * /ecs/logs/Demo-backend-ecs-group
         * /ecs/logs/Demo-bff-ecs-group
         * /ecs/logs/Demo-batch-ecs-group
+        * /ecs/logs/Demo-schedulelaunch-ecs-group        
     * FireLens+FluentBitの場合は、以下にログ出力
         * Cloud Watch Log
             * AP
                 * /ecs/logs/fluentbit-backend-group
                 * /ecs/logs/fluentbit-bff-group
                 * /ecs/logs/fluentbit-batch-group
+                * /ecs/logs/fluentbit-schedulelaunch-group                
             * FluentBit（サイドカー側のコンテナ）
                 * /ecs/logs/fluentbit-backend-sidecar
                 * /ecs/logs/fluentbit-bff-sidecar
                 * /ecs/logs/fluentbit-batch-sidecar
+                * /ecs/logs/fluentbit-schedulelaunch-sidecar
         * S3
             * (ログ出力用のバケット)/fluent-bit-logs/
 * Bastionからredis-cliでElastiCacheにアクセスしたい場合
@@ -382,7 +417,7 @@ psql -h (Auroraのクラスタエンドポイント) -U postgres -d testdb
 > select * from todo;  
 ```
 
-### 6. Application AutoScalingの設定
+### 7. Application AutoScalingの設定
 * 以下のコマンドで、ターゲット追跡スケーリングポリシーでオートスケーリング設定
 ```sh
 aws cloudformation validate-template --template-body file://cfn-ecs-autoscaling.yaml

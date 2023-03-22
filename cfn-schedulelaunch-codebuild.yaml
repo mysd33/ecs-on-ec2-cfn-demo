@@ -10,11 +10,11 @@ Parameters:
   ProjectName:
     Description: CodeBuild Project Name
     Type: String
-    Default: demo-batch-ci
+    Default: demo-schedulelaunch-ci
   RepositoryName:
     Description: Source Code Repository Location of CodeCommit
     Type: String
-    Default: sample-batch
+    Default: sample-schedulelaunch
   BranchName:
     Description: CodeCommit branch name
     Type: String
@@ -37,7 +37,7 @@ Resources:
     Type: AWS::CodeBuild::Project
     Properties:      
       Name: !Sub ${ProjectName}
-      Description: Batch CI Project
+      Description: ScheduleLaunch CI Project
       Source:
         Type: CODECOMMIT
         Location: !Sub https://git-codecommit.${AWS::Region}.amazonaws.com/v1/repos/${RepositoryName}
@@ -56,7 +56,7 @@ Resources:
             Value: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com
           - Name: REPOSITORY_URI
             Value:
-              Fn::ImportValue: !Sub ${StackPrefix}-BatchECRRepositoryUri
+              Fn::ImportValue: !Sub ${StackPrefix}-ScheduleLaunchECRRepositoryUri
       ServiceRole:
         Fn::ImportValue: !Sub ${StackPrefix}-CodeBuildRole-Arn
       TimeoutInMinutes: 10
@@ -74,4 +74,4 @@ Outputs:
     Description: CodeBuild Project Name
     Value: !Ref ProjectName
     Export: 
-      Name: !Sub ${StackPrefix}-Batch-CodeBuildProjectName
+      Name: !Sub ${StackPrefix}-ScheduleLaunch-CodeBuildProjectName

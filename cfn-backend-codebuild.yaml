@@ -38,7 +38,7 @@ Resources:
     Type: AWS::CodeBuild::Project
     Properties:      
       Name: !Sub ${ProjectName}
-      Description: Backend for Frontend CI Project
+      Description: Backend CI Project
       Source:
         Type: CODECOMMIT
         Location: !Sub https://git-codecommit.${AWS::Region}.amazonaws.com/v1/repos/${RepositoryName}

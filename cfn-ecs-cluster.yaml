@@ -259,3 +259,8 @@ Outputs:
     Value: !Sub ${StackPrefix}-Batch-Cluster
     Export:
       Name: !Sub ${StackPrefix}-Batch-ECSCluster-Name      
+  BatchECSClusterArn:
+    Description: Batch ECS Cluster Arn
+    Value: !GetAtt BatchECSCluster.Arn
+    Export:
+      Name: !Sub ${StackPrefix}-Batch-ECSCluster-Arn

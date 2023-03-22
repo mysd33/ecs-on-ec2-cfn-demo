@@ -1,0 +1,2 @@
+FROM public.ecr.aws/aws-observability/aws-for-fluent-bit:stable
+COPY ./extra-for-batch.conf /fluent-bit/etc/extra.conf

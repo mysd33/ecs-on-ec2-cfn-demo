@@ -1,0 +1,41 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: ECS Scheduled Task Template for CloudFormation Demo. Depends on cfn-iam.yaml cfn-ecs-cluster.yaml, cfn-ecs-task.yaml
+#Metadata: 
+
+Parameters: 
+  StackPrefix:
+    Description: Stack Resource Name Prefix
+    Type: String
+    Default: Demo
+  ScheduleExpression:
+    Type: String
+    Default: rate(1 minute)
+    #Default: cron(0/1 * * * ? *)
+
+#Mappings: 
+
+#Conditions: 
+
+Resources: 
+  ECSSchedule:
+    Type: AWS::Events::Rule
+    Properties:
+      ScheduleExpression: !Ref ScheduleExpression
+      Targets:
+        - Id: !Sub ${StackPrefix}-schedulelaunch-app
+          Arn: 
+            Fn::ImportValue: !Sub ${StackPrefix}-Batch-ECSCluster-Arn
+          RoleArn: 
+            Fn::ImportValue: !Sub ${StackPrefix}-ECSEventRole-Arn
+          EcsParameters:
+            LaunchType: EC2
+            TaskDefinitionArn: 
+              Fn::ImportValue: !Sub ${StackPrefix}-ScheduleLaunchECS-TaskDefinition
+            NetworkConfiguration:
+              AwsVpcConfiguration:
+                AssignPublicIp: DISABLED
+                Subnets:
+                  - Fn::ImportValue: !Sub ${StackPrefix}-PrivateSubnetOneId
+                  - Fn::ImportValue: !Sub ${StackPrefix}-PrivateSubnetTwoId 
+
+#Outputs:

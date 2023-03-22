@@ -115,6 +115,31 @@ Mappings:
       "ContainerPort" : 8080
       "ContainerMemory" : 1024
       "Profile" : "dev,log_container"
+  ScheduleLaunchAppTaskDefinitionMap:
+    Production:
+      "Memory" : 1024
+      "Cpu" : 512
+      "ContainerName" : "ecsdemo-schedulelaunch-app"      
+      "ContainerImage" : "sample-schedulelaunch:latest"
+      "ContainerPort" : 8080
+      "ContainerMemory" : 1024
+      "Profile" : "production,log_container"
+    Staging:
+      "Memory" : 1024
+      "Cpu" : 512
+      "ContainerName" : "ecsdemo-schedulelaunch-app"                  
+      "ContainerImage" : "sample-schedulelaunch:latest"
+      "ContainerPort" : 8080
+      "ContainerMemory" : 1024
+      "Profile" : "staging,log_container"
+    Dev:
+      "Memory" : 1024
+      "Cpu" : 512
+      "ContainerName" : "ecsdemo-schedulelaunch-app"                  
+      "ContainerImage" : "sample-schedulelaunch:latest"
+      "ContainerPort" : 8080
+      "ContainerMemory" : 1024
+      "Profile" : "dev,log_container"      
 #Conditions: 
 
 Resources:
@@ -142,6 +167,14 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub ${StackPrefix}-BatchAppECSLogGroup
+
+  ScheduleLaunchAppECSLogGroup:
+    Type: "AWS::Logs::LogGroup"
+    Properties:
+      LogGroupName: !Sub "/ecs/logs/${StackPrefix}-schedulelanuch-ecs-group"
+      Tags:
+        - Key: Name
+          Value: !Sub ${StackPrefix}-ScheduleLaunchAppECSLogGroup
 
   #ECS Task Definition for Frontend Application
   FrontendAppECSTaskDefinition:
@@ -350,6 +383,57 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub ${StackPrefix}-BatchAppECSTaskDefinition
+  #ECS Task Definition for ScheduleLaunch Application
+  ScheduleLaunchAppECSTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Sub ${StackPrefix}-ecstask-schedulelaunch-app
+      RequiresCompatibilities:
+        - EC2
+      Memory: !FindInMap [ScheduleLaunchAppTaskDefinitionMap, !Ref EnvironmentType, Memory]
+      Cpu: !FindInMap [ScheduleLaunchAppTaskDefinitionMap, !Ref EnvironmentType, Cpu]
+      NetworkMode: awsvpc      
+      ExecutionRoleArn:
+        Fn::ImportValue: !Sub ${StackPrefix}-ECSTaskExecutionRole-Arn
+      TaskRoleArn:
+        Fn::ImportValue: !Sub ${StackPrefix}-ScheduleLaunchECSTaskRole-Arn
+      ContainerDefinitions:
+        - Name: !FindInMap [ScheduleLaunchAppTaskDefinitionMap, !Ref EnvironmentType, ContainerName]
+          Image: 
+            Fn::Join:
+              - ""
+              - - !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/
+                - !FindInMap [ScheduleLaunchAppTaskDefinitionMap, !Ref EnvironmentType, ContainerImage]
+          PortMappings:
+            - ContainerPort: !FindInMap [ScheduleLaunchAppTaskDefinitionMap, !Ref EnvironmentType, ContainerPort]
+          Environment:
+            - Name: SPRING_PROFILES_ACTIVE
+              Value: !FindInMap [ScheduleLaunchAppTaskDefinitionMap, !Ref EnvironmentType, Profile]            
+            - Name: DELAYED_BATCH_QUEUES_SAMPLEBATCH_NAME
+              Value:
+                Fn::ImportValue: !Sub ${StackPrefix}-SQSQueueName
+            - Name: AWS_SQS_REGION
+              Value: !Ref AWS::Region       
+            - Name: BATCH_SCHEDULE_TARGETID
+              Value: SB_001              
+          Memory: !FindInMap [ScheduleLaunchAppTaskDefinitionMap, !Ref EnvironmentType, ContainerMemory]
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref ScheduleLaunchAppECSLogGroup
+              awslogs-region: !Ref "AWS::Region"
+              awslogs-stream-prefix: !Ref StackPrefix
+        - Name: xray-daemon
+          Image:
+            Fn::ImportValue: !Sub ${StackPrefix}-XRayDaemonECRRepositoryUri
+          Cpu: 32
+          MemoryReservation: 256          
+          PortMappings:
+            - ContainerPort: 2000              
+              Protocol: udp
+      Tags:
+        - Key: Name
+          Value: !Sub ${StackPrefix}-ScheduleLaunchAppECSTaskDefinition
 Outputs:
   FrontendAppECSTaskDefinition:
     Description: Frontend ECS Task Definition
@@ -366,3 +450,8 @@ Outputs:
     Value: !Ref BatchAppECSTaskDefinition
     Export:
       Name: !Sub ${StackPrefix}-BatchECS-TaskDefinition
+  ScheduleLaunchAppECSTaskDefinition:
+    Description: ScheduleLaunch ECS Task Definition
+    Value: !Ref ScheduleLaunchAppECSTaskDefinition
+    Export:
+      Name: !Sub ${StackPrefix}-ScheduleLaunchECS-TaskDefinition      
