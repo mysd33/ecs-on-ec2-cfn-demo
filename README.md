@@ -5,7 +5,7 @@
     * RDB(Aurora for Postgres)のみ版
         * SpringBootを用いた、BFFアプリケーション、Backendアプリケーション、バッチアプリケーション、スケジュールバッチ起動アプリケーションをECS上に実現した構成が構築される。
         * 通常は、DBとして、RDB(Aurora for Postgres)のみを使用した構成となっている。
-        * なお、上図はECSからのAPログ転送にCloudWatch Logs（awslogsドライバ）を利用した場合の例記載しているが、後述の通り、FireLens+Fluent Bitによるログ転送にも対応している。           
+        * なお、下図はECSからのAPログ転送にCloudWatch Logs（awslogsドライバ）を利用した場合の例記載しているが、後述の通り、FireLens+Fluent Bitによるログ転送にも対応している。           
 ![システム構成図](img/ecs.png)    
 
     * DynamoDB併用版
@@ -342,8 +342,7 @@ aws cloudformation create-stack --stack-name ECS-SCHEDULE-EVENT-Stack --template
 
     * 必要に応じてキーペア名等のパラメータを指定
         * 「--parameters ParameterKey=KeyPairName,ParameterValue=myKeyPair」
-        * BastionのEC2のアドレスは、CloudFormationの「Demo-Bastion-Stack」スタックの出力「BastionDNSName」のURLを参照    
-    * EC2にSSHでログインし、以下のコマンドを「curl http://(Private ALBのDNS名)/api/v1/todos/」を入力するとバックエンドサービスAPのJSONレスポンスが返却
+    * マネージドコンソールからEC2にセッションマネージャで接続し、以下のコマンドを「curl http://(Private ALBのDNS名)/api/v1/todos/」を入力するとバックエンドサービスAPのJSONレスポンスが返却
         * CloudFormationの「ECS-SERVICE-Stack」スタックの出力「BackendServiceURI」のURLを参照
 
 * BFFアプリケーションの確認

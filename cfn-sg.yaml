@@ -25,13 +25,13 @@ Resources:
       GroupDescription: Access to the bastion
       VpcId:
         Fn::ImportValue: !Sub ${StackPrefix}-VPC-ID
-      SecurityGroupIngress:
+      #SecurityGroupIngress:
         # Allow access to Bastion SSH from anywhere on the internet
-        - CidrIp: !Ref TerminalCidrIP
-          IpProtocol: tcp
-          FromPort: 22
-          ToPort: 22
-          Description: Ingress from the terminal machine
+        #- CidrIp: !Ref TerminalCidrIP
+        #  IpProtocol: tcp
+        #  FromPort: 22
+        #  ToPort: 22
+        #  Description: Ingress from the terminal machine
       Tags:
         - Key: Name
           Value: !Sub ${StackPrefix}-Bastion-SG 

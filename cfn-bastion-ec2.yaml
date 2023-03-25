@@ -18,7 +18,7 @@ Parameters:
   EC2InstanceType:
     Description: EC2 Instance Type
     Type: String
-    Default: t2.micro
+    Default: t3.micro
 
 #Mappings:   
 
@@ -31,8 +31,8 @@ Resources:
       KeyName: !Ref KeyPairName      
       ImageId: !Ref AMIImageId
       InstanceType: !Ref EC2InstanceType 
-      #IamInstanceProfile:
-      #NetworkInterfaces
+      IamInstanceProfile:
+        Fn::ImportValue: !Sub ${StackPrefix}-BastionInstanceProfile
       SecurityGroupIds:
         - Fn::ImportValue: !Sub ${StackPrefix}-BastionSecurityGroup-ID
       SubnetId:
@@ -41,7 +41,7 @@ Resources:
         - Key: Name
           Value: !Sub ${StackPrefix}-Bastion
 
-Outputs:
-  BastionDNSName: 
-    Description: EC2 Instance Public DNS Name
-    Value: !GetAtt BastionEC2.PublicDnsName
+#Outputs:
+#  BastionDNSName: 
+#    Description: EC2 Instance Public DNS Name
+#    Value: !GetAtt BastionEC2.PublicDnsName
