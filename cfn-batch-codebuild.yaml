@@ -18,7 +18,7 @@ Parameters:
   BranchName:
     Description: CodeCommit branch name
     Type: String
-    Default: master    
+    Default: feature-springboot3    
   ArtifactS3BucketName:
     Description: Artifact Location of S3 Bucket
     Type: String

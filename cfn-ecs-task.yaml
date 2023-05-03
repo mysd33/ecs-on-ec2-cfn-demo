@@ -217,7 +217,7 @@ Resources:
               Value: !Ref AppDataS3BucketName
             - Name: AWS_S3_REGION
               Value: !Ref AWS::Region
-            - Name: SPRING_REDIS_HOST
+            - Name: SPRING_DATA_REDIS_HOST
               Value:
                 Fn::ImportValue: !Sub ${StackPrefix}-ECachePrimaryEndPoint
             - Name: SPRING_DATASOURCE_URL
