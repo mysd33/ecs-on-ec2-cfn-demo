@@ -227,7 +227,7 @@ Resources:
                   - - "jdbc:postgresql://"
                     - Fn::ImportValue: !Sub ${StackPrefix}-RDSClusterEndpointAddress
                     - ":"
-                    - Fn::ImportValue: !Sub ${StackPrefix}-RDSClusterEndpoint
+                    - Fn::ImportValue: !Sub ${StackPrefix}-RDSClusterEndpointPort
                     - "/"
                     - Fn::ImportValue: !Sub ${StackPrefix}-RDSDBName
             - Name: SPRING_DATASOURCE_USERNAME
@@ -285,7 +285,7 @@ Resources:
                   - - "jdbc:postgresql://"
                     - Fn::ImportValue: !Sub ${StackPrefix}-RDSClusterEndpointAddress
                     - ":"
-                    - Fn::ImportValue: !Sub ${StackPrefix}-RDSClusterEndpoint
+                    - Fn::ImportValue: !Sub ${StackPrefix}-RDSClusterEndpointPort
                     - "/"
                     - Fn::ImportValue: !Sub ${StackPrefix}-RDSDBName
             - Name: SPRING_DATASOURCE_USERNAME
@@ -358,7 +358,7 @@ Resources:
                   - - "jdbc:postgresql://"
                     - Fn::ImportValue: !Sub ${StackPrefix}-RDSClusterEndpointAddress
                     - ":"
-                    - Fn::ImportValue: !Sub ${StackPrefix}-RDSClusterEndpoint
+                    - Fn::ImportValue: !Sub ${StackPrefix}-RDSClusterEndpointPort
                     - "/"
                     - Fn::ImportValue: !Sub ${StackPrefix}-RDSDBName
             - Name: SPRING_DATASOURCE_USERNAME
