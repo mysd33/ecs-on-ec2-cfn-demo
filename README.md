@@ -2,9 +2,9 @@
 
 ## 構成
 * システム構成図
-    * RDB(Aurora for Postgres)のみ版
+    * RDB(Aurora Serverless v2 for Postgres)のみ版
         * SpringBootを用いた、BFFアプリケーション、Backendアプリケーション、バッチアプリケーション、スケジュールバッチ起動アプリケーションをECS上に実現した構成が構築される。
-        * 通常は、DBとして、RDB(Aurora for Postgres)のみを使用した構成となっている。
+        * 通常は、DBとして、RDB(Aurora Serveless v2 for Postgres)のみを使用した構成となっている。
         * なお、下図はECSからのAPログ転送にCloudWatch Logs（awslogsドライバ）を利用した場合の例記載しているが、後述の通り、FireLens+Fluent Bitによるログ転送にも対応している。           
 ![システム構成図](img/ecs.png)    
 
@@ -237,8 +237,8 @@ aws cloudformation validate-template --template-body file://cfn-ecache-redis.yam
 aws cloudformation create-stack --stack-name ECS-ECACHE-Stack --template-body file://cfn-ecache-redis.yaml
 ```
 ## RDB環境構築
-### 1. Aurora for PostgreSQLのクラスタ作成
-* 各サンプルAPではRDBでデータ管理するため、Aurora for PostgreSQLを作成する。  
+### 1. Aurora Serverless v2 for PostgreSQLのクラスタ作成
+* 各サンプルAPではRDBでデータ管理するため、Aurora Serverless v2 for PostgreSQLを作成する。  
     * 作成にしばらく時間がかかる。
 ```sh
 aws cloudformation validate-template --template-body file://cfn-rds-aurora.yaml
