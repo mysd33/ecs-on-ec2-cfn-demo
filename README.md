@@ -397,7 +397,7 @@ src/redis-cli -h (ElastiCacheのEndpoint)
     * 以下参考に、Bastionにpsqlをインストールするとよい
         * https://techviewleo.com/how-to-install-postgresql-database-on-amazon-linux/
 ```sh
-sudo amazon-linux-extras install epel
+sudo amazon-linux-extras install -y epel
 
 sudo tee /etc/yum.repos.d/pgdg.repo<<EOF
 [pgdg14]
@@ -408,7 +408,7 @@ gpgcheck=0
 EOF
 
 sudo yum makecache
-sudo yum install postgresql14
+sudo yum install -y postgresql14
 
 #DBに接続    
 psql -h (Auroraのクラスタエンドポイント) -U postgres -d testdb    
