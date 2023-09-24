@@ -165,6 +165,21 @@ Resources:
         Fn::ImportValue: !Sub ${StackPrefix}-VPC-ID          
       SecurityGroupIds: 
         - Fn::ImportValue: !Sub ${StackPrefix}-VPCEndpointSecurityGroup-ID
+      PrivateDnsEnabled: true 
+
+#Secrets Manager VPC Endpoint
+  SecretsManagerVPCEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:      
+      VpcEndpointType: Interface
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.secretsmanager
+      SubnetIds:
+        - Fn::ImportValue: !Sub ${StackPrefix}-PrivateSubnetOneId
+        - Fn::ImportValue: !Sub ${StackPrefix}-PrivateSubnetTwoId
+      VpcId: 
+        Fn::ImportValue: !Sub ${StackPrefix}-VPC-ID          
+      SecurityGroupIds: 
+        - Fn::ImportValue: !Sub ${StackPrefix}-VPCEndpointSecurityGroup-ID
       PrivateDnsEnabled: true  
 
 #Outputs:

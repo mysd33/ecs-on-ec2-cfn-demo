@@ -102,7 +102,25 @@ Resources:
       DBInstanceIdentifier: aurora-postgresql-instance2      
       Engine: aurora-postgresql
 
+# Secrets Manager
+  RDSSecretsManager:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub ${StackPrefix}-RDS-Secrets
+      Description: RDS Aurora Secrets
+      SecretString: !Sub '{
+        "username": "${DBUsername}",
+        "password": "${DBPassword}"
+        }'
+      Tags:
+        - Key: Name
+          Value: !Sub ${StackPrefix}-SecretsManager
 Outputs:
+  RDSClusterID:
+    Description: RDS Aurora Cluster ID
+    Value: !Ref RDSCluster
+    Export: 
+      Name: !Sub ${StackPrefix}-RDSClusterID
   RDSClusterEndpointAddress:
     Description: RDS Aurora Cluster Endpoint Address
     Value: !GetAtt RDSCluster.Endpoint.Address
@@ -123,3 +141,8 @@ Outputs:
     Value: !Ref DBName
     Export: 
       Name: !Sub ${StackPrefix}-RDSDBName
+  RDSSecretsManagerArn:
+    Description: RDS Secrets Manager Arn
+    Value: !Ref RDSSecretsManager
+    Export: 
+      Name: !Sub ${StackPrefix}-RDSSecretsManagerArn      
