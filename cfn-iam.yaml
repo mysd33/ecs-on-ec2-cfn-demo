@@ -6,7 +6,7 @@ Parameters:
   StackPrefix:
     Description: Stack Resource Name Prefix
     Type: String
-    Default: Demo
+    Default: Demo    
   BffCodeBuildProjectName:
     Description: Backend for Frontend CodeBuild Project Name
     Type: String
@@ -128,10 +128,6 @@ Resources:
       ManagedPolicyArns:
         #For X-Ray
         - arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess
-        #For FireLens  & S3 Access by App
-        #TODO: Review Required Actions of Policy
-        - arn:aws:iam::aws:policy/AmazonS3FullAccess   
-        - arn:aws:iam::aws:policy/CloudWatchLogsFullAccess       
       Tags:
         - Key: Name
           Value: !Sub ${StackPrefix}-FrontendECSTaskRole
@@ -149,11 +145,7 @@ Resources:
               Service: ecs-tasks.amazonaws.com
       ManagedPolicyArns:
         #For X-Ray
-        - arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess      
-        #For FireLens      
-        #TODO: Review Required Actions of Policy
-        - arn:aws:iam::aws:policy/AmazonS3FullAccess   
-        - arn:aws:iam::aws:policy/CloudWatchLogsFullAccess
+        - arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess
       Tags:
         - Key: Name
           Value: !Sub ${StackPrefix}-BackendECSTaskRole
@@ -171,11 +163,7 @@ Resources:
               Service: ecs-tasks.amazonaws.com
       ManagedPolicyArns:
         #For X-Ray
-        - arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess      
-        #For FireLens  & S3 Access by App
-        #TODO: Review Required Actions of Policy
-        - arn:aws:iam::aws:policy/AmazonS3FullAccess   
-        - arn:aws:iam::aws:policy/CloudWatchLogsFullAccess
+        - arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess
       Tags:
         - Key: Name
           Value: !Sub ${StackPrefix}-BatchECSTaskRole
@@ -193,14 +181,52 @@ Resources:
               Service: ecs-tasks.amazonaws.com
       ManagedPolicyArns:
         #For X-Ray
-        - arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess      
-        #For FireLens  & S3 Access by App
-        #TODO: Review Required Actions of Policy
-        - arn:aws:iam::aws:policy/AmazonS3FullAccess   
-        - arn:aws:iam::aws:policy/CloudWatchLogsFullAccess
+        - arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess        
       Tags:
         - Key: Name
           Value: !Sub ${StackPrefix}-ScheduleLaunchECSTaskRole
+
+  #IAM Policy for CloudWatch Access
+  CloudWatchPolicy:
+    Type: AWS::IAM::Policy      
+    Properties:
+      PolicyDocument:
+        Statement:
+        - Action:
+          - logs:CreateLogStream
+          - logs:CreateLogGroup
+          - logs:DescribeLogStreams
+          - logs:PutLogEvents
+          Effect: Allow
+          Resource:
+          - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:*            
+      PolicyName: !Sub ${StackPrefix}-CloudWatchPolicy
+      Roles:
+      - !Ref FrontendECSTaskRole
+      - !Ref BackendECSTaskRole
+      - !Ref BatchECSTaskRole        
+      - !Ref ScheduleLaunchECSTaskRole
+  
+  #IAM Policy for S3 Access(For FireLens & S3 Access by App)
+  S3AccessPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyDocument:
+        Statement:
+        - Action:
+          - s3:PutObject
+          - s3:GetObject
+          - s3:DeleteObject          
+          - s3:ListBucket          
+          Effect: Allow
+          Resource:
+          - !Sub arn:aws:s3:::*                    
+      PolicyName: !Sub ${StackPrefix}-S3Policy
+      Roles:
+      - !Ref FrontendECSTaskRole
+      - !Ref BackendECSTaskRole
+      - !Ref BatchECSTaskRole        
+      - !Ref ScheduleLaunchECSTaskRole
 
   #IAM Policy for SQS Access
   SQSAccessPolicy:

@@ -27,15 +27,15 @@ Mappings:
       "ContainerPort" : 8080
       "Profile" : "production,log_container,xray"
     Staging:
-      "Memory" : 1024
-      "Cpu" : 512
+      "Memory" : 2048
+      "Cpu" : 1024
       "ContainerName" : "ecsdemo-frontend-app"
       "ContainerImage" : "sample-bff:latest"
       "ContainerPort" : 8080
       "Profile" : "staging,log_container,xray"
     Dev:
-      "Memory" : 1024
-      "Cpu" : 512
+      "Memory" : 2048
+      "Cpu" : 1024
       "ContainerName" : "ecsdemo-frontend-app"
       "ContainerImage" : "sample-bff:latest"
       "ContainerPort" : 8080
@@ -169,6 +169,8 @@ Resources:
           PortMappings:
             - ContainerPort: !FindInMap [FrontendAppTaskDefinitionMap, !Ref EnvironmentType, ContainerPort]
           Environment:
+            - Name: TZ
+              Value: Asia/Tokyo
             - Name: SPRING_PROFILES_ACTIVE
               Value: !FindInMap [FrontendAppTaskDefinitionMap, !Ref EnvironmentType, Profile]            
             - Name: API_BACKEND_URL
@@ -199,6 +201,8 @@ Resources:
                     - Fn::ImportValue: !Sub ${StackPrefix}-RDSClusterEndpointPort
                     - "/"
                     - Fn::ImportValue: !Sub ${StackPrefix}-RDSDBName
+            - Name: RESILIENCE4J_TIMELIMITER_CONFIGS_DEFAULT_TIMEOUTDURATION
+              Value: 3s
             #- Name: SERVER_SERVLET_SESSION_TIMEOUT
             #  Value: 1m
           Secrets:
@@ -261,6 +265,8 @@ Resources:
           PortMappings:
             - ContainerPort: !FindInMap [BackendServiceTaskDefinitionMap, !Ref EnvironmentType, ContainerPort]              
           Environment:
+            - Name: TZ
+              Value: Asia/Tokyo          
             - Name: SPRING_PROFILES_ACTIVE
               Value: !FindInMap [BackendServiceTaskDefinitionMap, !Ref EnvironmentType, Profile]
             - Name: SPRING_DATASOURCE_URL
@@ -333,6 +339,8 @@ Resources:
           PortMappings:
             - ContainerPort: !FindInMap [BatchAppTaskDefinitionMap, !Ref EnvironmentType, ContainerPort]
           Environment:
+            - Name: TZ
+              Value: Asia/Tokyo           
             - Name: SPRING_PROFILES_ACTIVE
               Value: !FindInMap [BatchAppTaskDefinitionMap, !Ref EnvironmentType, Profile]            
             - Name: AWS_SQS_LISTENER_QUEUENAME
@@ -360,6 +368,8 @@ Resources:
                     - Fn::ImportValue: !Sub ${StackPrefix}-RDSClusterEndpointPort
                     - "/"
                     - Fn::ImportValue: !Sub ${StackPrefix}-RDSDBName
+            - Name: RESILIENCE4J_TIMELIMITER_CONFIGS_DEFAULT_TIMEOUTDURATION
+              Value: 3s
           Secrets:
             - Name: SPRING_DATASOURCE_USERNAME
               ValueFrom:
@@ -418,6 +428,8 @@ Resources:
             - SourceVolume: tmp                
               ContainerPath: /tmp              
           Environment:
+            - Name: TZ
+              Value: Asia/Tokyo           
             - Name: SPRING_PROFILES_ACTIVE
               Value: !FindInMap [ScheduleLaunchAppTaskDefinitionMap, !Ref EnvironmentType, Profile]            
             - Name: DELAYED_BATCH_QUEUES_SAMPLEBATCH_NAME
