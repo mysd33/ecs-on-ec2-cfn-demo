@@ -191,6 +191,8 @@ Resources:
             - Name: SPRING_DATA_REDIS_HOST
               Value:
                 Fn::ImportValue: !Sub ${StackPrefix}-ECachePrimaryEndPoint
+            - Name: SPRING_DATA_REDIS_SSL_ENABLED
+              Value: true
             - Name: SPRING_DATASOURCE_URL
               Value:
                 Fn::Join: 

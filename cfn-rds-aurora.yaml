@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: RDS Aurora PostgreSQL Template for CloudFormation Demo. Depends on cfn-vpc.yaml, cfn-sg.yaml
+Description: RDS Aurora PostgreSQL RDS Proxy Template for CloudFormation Demo. Depends on cfn-iam.yaml, cfn-vpc.yaml, cfn-sg.yaml, cfn-secrets.yaml
 #Metadata: 
 
 Parameters: 
@@ -7,22 +7,6 @@ Parameters:
     Description: Stack Resource Name Prefix
     Type: String
     Default: Demo
-  DBUsername:
-    NoEcho: 'true'
-    Description: Username for PostgreSQL database access
-    Type: String
-    MinLength: '1'
-    MaxLength: '16'
-    AllowedPattern: '[a-zA-Z][a-zA-Z0-9]*'
-    ConstraintDescription: must begin with a letter and contain only alphanumeric characters.
-  DBPassword:
-    NoEcho: 'true'
-    Description: Password for PostgreSQL database access
-    Type: String
-    MinLength: '8'
-    MaxLength: '41'
-    AllowedPattern: '[a-zA-Z0-9]*'
-    ConstraintDescription: must contain only alphanumeric characters.
   DBName:
     Description: Database Name
     Type: String
@@ -30,11 +14,11 @@ Parameters:
   DBEngineVersion:
     Description: Version number of the database engine
     Type: String
-    Default: 14.6  
+    Default: 16.4
   DBEngineFamily:
     Description: Family of the database engine
     Type: String
-    Default: aurora-postgresql14
+    Default: aurora-postgresql16
   #DBInstanceClassName:
   #  Description: DB Instance Class
   #  Type: String
@@ -74,8 +58,8 @@ Resources:
         - postgresql
       Engine: aurora-postgresql
       EngineVersion: !Ref DBEngineVersion
-      MasterUsername: !Ref DBUsername
-      MasterUserPassword: !Ref DBPassword
+      MasterUsername: !Sub '{{resolve:secretsmanager:${StackPrefix}-RDS-Secrets:SecretString:username}}'
+      MasterUserPassword: !Sub '{{resolve:secretsmanager:${StackPrefix}-RDS-Secrets:SecretString:password}}'
       Port: 5432
       VpcSecurityGroupIds:
         - Fn::ImportValue: !Sub ${StackPrefix}-AuroraSecurityGroup-ID          
@@ -101,20 +85,6 @@ Resources:
       #DBInstanceClass: !Ref DBInstanceClassName
       DBInstanceIdentifier: aurora-postgresql-instance2      
       Engine: aurora-postgresql
-
-# Secrets Manager
-  RDSSecretsManager:
-    Type: AWS::SecretsManager::Secret
-    Properties:
-      Name: !Sub ${StackPrefix}-RDS-Secrets
-      Description: RDS Aurora Secrets
-      SecretString: !Sub '{
-        "username": "${DBUsername}",
-        "password": "${DBPassword}"
-        }'
-      Tags:
-        - Key: Name
-          Value: !Sub ${StackPrefix}-SecretsManager
 Outputs:
   RDSClusterID:
     Description: RDS Aurora Cluster ID
@@ -141,8 +111,3 @@ Outputs:
     Value: !Ref DBName
     Export: 
       Name: !Sub ${StackPrefix}-RDSDBName
-  RDSSecretsManagerArn:
-    Description: RDS Secrets Manager Arn
-    Value: !Ref RDSSecretsManager
-    Export: 
-      Name: !Sub ${StackPrefix}-RDSSecretsManagerArn      

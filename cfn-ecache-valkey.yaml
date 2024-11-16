@@ -8,9 +8,10 @@ Parameters:
     Type: String
     Default: Demo
   ECacheEngineVersion:
-    Description: ElastiCache for Redis Engine Version
+    Description: ElastiCache Engine Version
     Type: String
-    Default: 6.2
+#    Default: 6.2
+    Default: 7.2
 #  ECacheParameterGroupName:
 #    Description: ElastiCache ParameterGroup Name
 #    Type: String
@@ -18,7 +19,8 @@ Parameters:
   ECacheParameterGroupFamilyName:
     Description: ElastiCache ParameterGroup Family Name
     Type: String
-    Default: redis6.x
+#    Default: redis6.x
+    Default: valkey7
   ECacheInstanceType:
     Description: ElastiCache instance type
     Type: String
@@ -58,7 +60,8 @@ Resources:
       #CacheParameterGroupName: !Ref ECacheParameterGroupName
       CacheParameterGroupName: !Ref ElastiCacheParameterGroup
       CacheSubnetGroupName: !Ref ElastiCacheSubnetGroup
-      Engine: redis
+      #Engine: redis
+      Engine: valkey
       EngineVersion: !Ref ECacheEngineVersion
       MultiAZEnabled: true
       NumCacheClusters: !Ref NumberOfCacheClusters
@@ -67,6 +70,8 @@ Resources:
       ReplicationGroupId: !Sub ${StackPrefix}-ReplicationGroup                        
       SecurityGroupIds:
         - Fn::ImportValue: !Sub ${StackPrefix}-ECacheSecurityGroup-ID 
+      # must be specified for valkey
+      TransitEncryptionEnabled: true
 
 Outputs:
   ElastiCacheReplicationGroupID:
