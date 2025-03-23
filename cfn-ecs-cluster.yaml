@@ -128,7 +128,7 @@ Resources:
   BackendECSCluster:
     Type: AWS::ECS::Cluster
     Properties:
-      ClusterName: !Sub ${StackPrefix}-Backtend-Cluster
+      ClusterName: !Sub ${StackPrefix}-Backend-Cluster
       ClusterSettings:
         - Name: containerInsights
           Value: enabled
@@ -246,7 +246,7 @@ Outputs:
       Name: !Sub ${StackPrefix}-Backend-ECSCluster
   BackendECSClusterName:
     Description: Backend ECS Cluster Name
-    Value: !Sub ${StackPrefix}-Backtend-Cluster
+    Value: !Sub ${StackPrefix}-Backend-Cluster
     Export:
       Name: !Sub ${StackPrefix}-Backend-ECSCluster-Name
   BatchECSCluster:

@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: RDS Aurora PostgreSQL RDS Proxy Template for CloudFormation Demo. Depends on cfn-iam.yaml, cfn-vpc.yaml, cfn-sg.yaml, cfn-secrets.yaml
+Description: RDS Aurora PostgreSQL Template for CloudFormation Demo. Depends on cfn-iam.yaml, cfn-vpc.yaml, cfn-sg.yaml, cfn-secrets.yaml
 #Metadata: 
 
 Parameters: 
@@ -45,28 +45,50 @@ Resources:
         - Fn::ImportValue: !Sub ${StackPrefix}-PrivateSubnetThreeId
         - Fn::ImportValue: !Sub ${StackPrefix}-PrivateSubnetFourId
 
+  RDSDClusterBParameterGroup:
+    Type: AWS::RDS::DBClusterParameterGroup
+    Properties:
+      DBClusterParameterGroupName: !Sub ${StackPrefix}-RDSDClusterBParameterGroup
+      Description: RDS Aurora for PostgreSQL DB Parameter Group
+      Family: !Ref DBEngineFamily
+      # Reference To Create Customize Parameters Group 
+      # https://docs.aws.amazon.com/ja_jp/AmazonRDS/latest/AuroraUserGuide/AuroraPostgreSQL.Reference.ParameterGroups.html      
+      Parameters:
+        timezone: Asia/Tokyo
+
   RDSCluster:
     Type: 'AWS::RDS::DBCluster'
     Properties:
       DatabaseName: !Ref DBName
-      # Reference To Create Customize Parameters Group 
-      # https://docs.aws.amazon.com/ja_jp/AmazonRDS/latest/AuroraUserGuide/AuroraPostgreSQL.Reference.ParameterGroups.html      
-      DBClusterParameterGroupName: !Sub default.${DBEngineFamily}
+      #DBClusterParameterGroupName: !Sub default.${DBEngineFamily}
+      DBClusterParameterGroupName: !Ref RDSDClusterBParameterGroup
       DBClusterIdentifier: aurora-postgresql-cluster
       DBSubnetGroupName: !Ref RDSDBSubnetGroup      
       EnableCloudwatchLogsExports:
         - postgresql
       Engine: aurora-postgresql
       EngineVersion: !Ref DBEngineVersion
-      MasterUsername: !Sub '{{resolve:secretsmanager:${StackPrefix}-RDS-Secrets:SecretString:username}}'
-      MasterUserPassword: !Sub '{{resolve:secretsmanager:${StackPrefix}-RDS-Secrets:SecretString:password}}'
+      MasterUsername:  
+        Fn::Join:
+          - ""
+          - - "{{resolve:secretsmanager:"
+            - Fn::ImportValue: !Sub ${StackPrefix}-RDSSecretsManagerName
+            - ":SecretString:username}}"
+      MasterUserPassword: 
+        Fn::Join:
+          - ""
+          - - "{{resolve:secretsmanager:"
+            - Fn::ImportValue: !Sub ${StackPrefix}-RDSSecretsManagerName
+            - ":SecretString:password}}"
       Port: 5432
       VpcSecurityGroupIds:
         - Fn::ImportValue: !Sub ${StackPrefix}-AuroraSecurityGroup-ID          
       ServerlessV2ScalingConfiguration: 
         MaxCapacity: !Ref AuroraServerlessMaxCapacity
         MinCapacity: !Ref AuroraServerlessMinCapacity
-
+    #TODO: Snapshot
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
 
   RDSDBInstance1:
     Type: 'AWS::RDS::DBInstance'
@@ -76,6 +98,10 @@ Resources:
       #DBInstanceClass: !Ref DBInstanceClassName      
       DBInstanceIdentifier: aurora-postgresql-instance1      
       Engine: aurora-postgresql
+      PubliclyAccessible: false
+    #TODO: Snapshot
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
   
   RDSDBInstance2:
     Type: 'AWS::RDS::DBInstance'
@@ -85,6 +111,11 @@ Resources:
       #DBInstanceClass: !Ref DBInstanceClassName
       DBInstanceIdentifier: aurora-postgresql-instance2      
       Engine: aurora-postgresql
+      PubliclyAccessible: false
+    #TODO:  Snapshot      
+    UpdateReplacePolicy: Delete      
+    DeletionPolicy: Delete
+
 Outputs:
   RDSClusterID:
     Description: RDS Aurora Cluster ID

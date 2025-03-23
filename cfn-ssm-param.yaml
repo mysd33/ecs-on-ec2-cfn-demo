@@ -1,0 +1,164 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: SSM Parameter Store Template for CloudFormation Demo. Depends on cfn-ecahce-valkey.yaml, cfn-rds-aurora.yaml, cfn-sqs.yaml, cfn-alb.yaml
+
+Parameters: 
+  StackPrefix:
+    Description: Stack Resource Name Prefix
+    Type: String
+    Default: Demo
+  AppDataS3BucketName:
+    Description: Location of S3 Bucket For Application Data
+    Type: String
+    Default: mysd33bucket123
+
+Resources:
+  #common
+  CommonSQSParameters:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /config/common/aws.sqs.region
+      Type: String
+      Value: !Ref AWS::Region
+  CommonS3RegionParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /config/common/aws.s3.region
+      Type: String
+      Value: !Ref AWS::Region
+  CommonS3BucketParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /config/common/aws.s3.bucket
+      Type: String
+      Value: !Ref AppDataS3BucketName
+  CommonRedisHostParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /config/common/spring.data.redis.host
+      Type: String
+      Value:
+        Fn::ImportValue: !Sub ${StackPrefix}-ECachePrimaryEndPoint
+  CommonRedisSSLEnabledParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /config/common/spring.data.redis.ssl.enabled
+      Type: String
+      Value: true
+  CommonDatasourceUrlParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /config/common/spring.datasource.url
+      Type: String
+      Value:
+        Fn::Join: 
+          - ""
+          - - "jdbc:postgresql://"
+            - Fn::ImportValue: !Sub ${StackPrefix}-RDSClusterEndpointAddress
+            - ":"
+            - Fn::ImportValue: !Sub ${StackPrefix}-RDSClusterEndpointPort
+            - "/"
+            - Fn::ImportValue: !Sub ${StackPrefix}-RDSDBName
+  CommonWriteDatasourceUrlParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /config/common/spring.datasource.write.url
+      Type: String
+      Value:
+        Fn::Join: 
+          - ""
+          - - "jdbc:postgresql://"
+            - Fn::ImportValue: !Sub ${StackPrefix}-RDSClusterEndpointAddress
+            - ":"
+            - Fn::ImportValue: !Sub ${StackPrefix}-RDSClusterEndpointPort
+            - "/"
+            - Fn::ImportValue: !Sub ${StackPrefix}-RDSDBName
+  CommonReadDatasourceUrlParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /config/common/spring.datasource.read.url
+      Type: String
+      Value:
+        Fn::Join: 
+          - ""
+          - - "jdbc:postgresql://"
+            - Fn::ImportValue: !Sub ${StackPrefix}-RDSReaderEndpointAddress
+            - ":"
+            - Fn::ImportValue: !Sub ${StackPrefix}-RDSClusterEndpointPort
+            - "/"
+            - Fn::ImportValue: !Sub ${StackPrefix}-RDSDBName
+  # sample-bff
+  SampleBffApiBackendUrlParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /config/sample-bff/api.backend.url
+      Type: String
+      Value: 
+        Fn::Join: 
+          - ""
+          - - "http://"
+            - Fn::ImportValue: !Sub ${StackPrefix}-PrivALB-DNS
+  SampleBffTimeoutDurationParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /config/sample-bff/resilience4j.timelimiter.configs.default.timeoutDuration
+      Type: String
+      Value: 3s            
+  SampleBffDelayedBatchQueueParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /config/sample-bff/delayed.batch.queue
+      Type: String
+      Value:
+        Fn::ImportValue: !Sub ${StackPrefix}-SQSQueueName      
+  SampleBffDatasourceDynamicRoutingParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /config/sample-bff/spring.datasource.dynamic-routing.enabled
+      Type: String
+      Value: true
+  # sample-backend
+  SampleBackendDatasourceDynamicRoutingParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /config/sample-backend/spring.datasource.dynamic-routing.enabled
+      Type: String
+      Value: true
+
+  # sample-batch
+  SampleBatchSqsListenerQueueNameParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /config/sample-batch/aws.sqs.listener.queue-name
+      Type: String
+      Value:
+        Fn::ImportValue: !Sub ${StackPrefix}-SQSQueueName      
+  SampleBatchApiBackendUrlParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /config/sample-batch/api.backend.url
+      Type: String
+      Value: 
+        Fn::Join: 
+          - ""
+          - - "http://"
+            - Fn::ImportValue: !Sub ${StackPrefix}-PrivALB-DNS
+  SampleBatchTimeoutDurationParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /config/sample-batch/resilience4j.timelimiter.configs.default.timeoutDuration
+      Type: String
+      Value: 3s
+  #sample-schedulelaunch
+  SampleScheduleLaunchDelayedBatchQueueParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /config/sample-schedulelaunch/delayed.batch.queues.samplebatch.name
+      Type: String
+      Value:
+        Fn::ImportValue: !Sub ${StackPrefix}-SQSQueueName
+  SampleScheduleLaunchBatchScheduleTargetIdParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /config/sample-schedulelaunch/batch.schedule.target-id
+      Type: String
+      Value: SB_001

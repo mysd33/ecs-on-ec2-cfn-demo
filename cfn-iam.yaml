@@ -289,6 +289,43 @@ Resources:
       Roles:
       - !Ref BackendECSTaskRole
 
+  #IAM Policy for Secrets Manager Access
+  SecretsManagerAccessPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyDocument:
+        Statement:
+        # SecretsManagerAccess
+        - Action:
+          - secretsmanager:GetSecretValue
+          Effect: Allow
+          Resource:
+          - !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:*
+      PolicyName: !Sub ${StackPrefix}-SecretsManagerTaskPolicy
+      Roles:
+      - !Ref FrontendECSTaskRole
+      - !Ref BackendECSTaskRole
+      - !Ref BatchECSTaskRole
+
+  #IAM Policy for Systems Manager Parameter Store Access
+  SSMParameterStoreAccessPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyDocument:
+        Statement:
+        # SSMParameterStoreAccess
+        - Action:
+          - ssm:GetParametersByPath
+          Effect: Allow
+          Resource:
+          - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/*
+      PolicyName: !Sub ${StackPrefix}-SSMParameterStoreTaskPolicy
+      Roles:
+      - !Ref FrontendECSTaskRole
+      - !Ref BackendECSTaskRole
+      - !Ref BatchECSTaskRole
+      - !Ref ScheduleLaunchECSTaskRole
+
   #IAM Role for ECS Task Execution  
   ECSTaskExecutionRole:
     Type: AWS::IAM::Role

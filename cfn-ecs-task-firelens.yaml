@@ -13,10 +13,6 @@ Parameters:
     AllowedValues: ["Dev", "Staging", "Production"]
     Default: Production
     ConstraintDescription: must be a prod or test
-  AppDataS3BucketName:
-    Description: Location of S3 Bucket For Application Data
-    Type: String
-    Default: mysd33bucket123
 Mappings: 
   FrontendAppTaskDefinitionMap:
     Production:
@@ -26,6 +22,7 @@ Mappings:
       "ContainerImage" : "sample-bff:latest"
       "ContainerPort" : 8080
       "Profile" : "production,log_container,xray"
+      "HealthCheck" : "curl -f http://localhost:8080/actuator/health || exit 1"      
     Staging:
       "Memory" : 2048
       "Cpu" : 1024
@@ -33,6 +30,7 @@ Mappings:
       "ContainerImage" : "sample-bff:latest"
       "ContainerPort" : 8080
       "Profile" : "staging,log_container,xray"
+      "HealthCheck" : "curl -f http://localhost:8080/actuator/health || exit 1"      
     Dev:
       "Memory" : 2048
       "Cpu" : 1024
@@ -40,6 +38,7 @@ Mappings:
       "ContainerImage" : "sample-bff:latest"
       "ContainerPort" : 8080
       "Profile" : "dev,log_container,xray"
+      "HealthCheck" : "curl -f http://localhost:8080/actuator/health || exit 1"
   BackendServiceTaskDefinitionMap:
     Production:
       "Memory" : 1024
@@ -48,6 +47,7 @@ Mappings:
       "ContainerImage" : "sample-backend:latest"
       "ContainerPort" : 8080
       "Profile" : "production,log_container,xray"
+      "HealthCheck" : "curl -f http://localhost:8080/actuator/health || exit 1"      
     Staging:
       "Memory" : 1024
       "Cpu" : 512
@@ -55,6 +55,7 @@ Mappings:
       "ContainerImage" : "sample-backend:latest"
       "ContainerPort" : 8080
       "Profile" : "staging,log_container,xray"
+      "HealthCheck" : "curl -f http://localhost:8080/actuator/health || exit 1"      
     Dev:
       "Memory" : 1024
       "Cpu" : 512
@@ -62,6 +63,7 @@ Mappings:
       "ContainerImage" : "sample-backend:latest"
       "ContainerPort" : 8080
       "Profile" : "dev,log_container,xray"
+      "HealthCheck" : "curl -f http://localhost:8080/actuator/health || exit 1"      
   BatchAppTaskDefinitionMap:
     Production:
       "Memory" : 1024
@@ -70,6 +72,7 @@ Mappings:
       "ContainerImage" : "sample-batch:latest"
       "ContainerPort" : 8080
       "Profile" : "production,log_container"
+      "HealthCheck" : "curl -f http://localhost:8080/actuator/health || exit 1"      
     Staging:
       "Memory" : 1024
       "Cpu" : 512
@@ -77,6 +80,7 @@ Mappings:
       "ContainerImage" : "sample-batch:latest"
       "ContainerPort" : 8080
       "Profile" : "staging,log_container"
+      "HealthCheck" : "curl -f http://localhost:8080/actuator/health || exit 1"      
     Dev:
       "Memory" : 1024
       "Cpu" : 512
@@ -84,6 +88,7 @@ Mappings:
       "ContainerImage" : "sample-batch:latest"
       "ContainerPort" : 8080
       "Profile" : "dev,log_container"
+      "HealthCheck" : "curl -f http://localhost:8080/actuator/health || exit 1"
   ScheduleLaunchAppTaskDefinitionMap:
     Production:
       "Memory" : 1024
@@ -168,56 +173,21 @@ Resources:
               ContainerPath: /tmp                   
           PortMappings:
             - ContainerPort: !FindInMap [FrontendAppTaskDefinitionMap, !Ref EnvironmentType, ContainerPort]
+          HealthCheck:
+            Command:
+              - CMD-SHELL
+              - !FindInMap [FrontendAppTaskDefinitionMap, !Ref EnvironmentType, HealthCheck]
+            Interval: 150
+            StartPeriod: 300
           Environment:
             - Name: TZ
               Value: Asia/Tokyo          
             - Name: SPRING_PROFILES_ACTIVE
               Value: !FindInMap [FrontendAppTaskDefinitionMap, !Ref EnvironmentType, Profile]            
-            - Name: API_BACKEND_URL
-              Value: 
-                Fn::Join: 
-                  - ""
-                  - - "http://"
-                    - Fn::ImportValue: !Sub ${StackPrefix}-PrivALB-DNS
-            - Name: DELAYED_BATCH_QUEUE
-              Value:
-                Fn::ImportValue: !Sub ${StackPrefix}-SQSQueueName
-            - Name: AWS_SQS_REGION
-              Value: !Ref AWS::Region
-            - Name: AWS_S3_BUCKET
-              Value: !Ref AppDataS3BucketName
-            - Name: AWS_S3_REGION
-              Value: !Ref AWS::Region
-            - Name: SPRING_DATA_REDIS_HOST
-              Value:
-                Fn::ImportValue: !Sub ${StackPrefix}-ECachePrimaryEndPoint
-            - Name: SPRING_DATA_REDIS_SSL_ENABLED
-              Value: true                
-            - Name: SPRING_DATASOURCE_URL
-              Value:
-                Fn::Join: 
-                  - ""
-                  - - "jdbc:postgresql://"
-                    - Fn::ImportValue: !Sub ${StackPrefix}-RDSClusterEndpointAddress
-                    - ":"
-                    - Fn::ImportValue: !Sub ${StackPrefix}-RDSClusterEndpointPort
-                    - "/"
-                    - Fn::ImportValue: !Sub ${StackPrefix}-RDSDBName
-            - Name: RESILIENCE4J_TIMELIMITER_CONFIGS_DEFAULT_TIMEOUTDURATION
-              Value: 3s
-          Secrets:
-            - Name: SPRING_DATASOURCE_USERNAME
-              ValueFrom:
-                Fn::Join:
-                  - ""
-                  - - Fn::ImportValue: !Sub ${StackPrefix}-RDSSecretsManagerArn
-                    - ":username::"
-            - Name: SPRING_DATASOURCE_PASSWORD
-              ValueFrom:            
-                Fn::Join:
-                  - ""
-                  - - Fn::ImportValue: !Sub ${StackPrefix}-RDSSecretsManagerArn
-                    - ":password::"
+            - Name: LOGGING_LEVEL_IO_AWSPRING_CLOUD_PARAMETERSTORE
+              Value: DEBUG
+            - Name: LOGGING_LEVEL_IO_AWSPRING_CLOUD_SECRETSMANAGER
+              Value: DEBUG               
           LogConfiguration:
             LogDriver: awsfirelens
         - Name: frontend_log_router
@@ -277,34 +247,21 @@ Resources:
               ContainerPath: /tmp                   
           PortMappings:
             - ContainerPort: !FindInMap [BackendServiceTaskDefinitionMap, !Ref EnvironmentType, ContainerPort]              
+          HealthCheck:
+            Command:
+              - CMD-SHELL
+              - !FindInMap [BackendServiceTaskDefinitionMap, !Ref EnvironmentType, HealthCheck]
+            Interval: 60
+            StartPeriod: 120
           Environment:
             - Name: TZ
               Value: Asia/Tokyo          
             - Name: SPRING_PROFILES_ACTIVE
               Value: !FindInMap [BackendServiceTaskDefinitionMap, !Ref EnvironmentType, Profile]
-            - Name: SPRING_DATASOURCE_URL
-              Value:
-                Fn::Join: 
-                  - ""
-                  - - "jdbc:postgresql://"
-                    - Fn::ImportValue: !Sub ${StackPrefix}-RDSClusterEndpointAddress
-                    - ":"
-                    - Fn::ImportValue: !Sub ${StackPrefix}-RDSClusterEndpointPort
-                    - "/"
-                    - Fn::ImportValue: !Sub ${StackPrefix}-RDSDBName
-          Secrets:
-            - Name: SPRING_DATASOURCE_USERNAME
-              ValueFrom:
-                Fn::Join:
-                  - ""
-                  - - Fn::ImportValue: !Sub ${StackPrefix}-RDSSecretsManagerArn
-                    - ":username::"
-            - Name: SPRING_DATASOURCE_PASSWORD
-              ValueFrom:            
-                Fn::Join:
-                  - ""
-                  - - Fn::ImportValue: !Sub ${StackPrefix}-RDSSecretsManagerArn
-                    - ":password::"
+            - Name: LOGGING_LEVEL_IO_AWSPRING_CLOUD_PARAMETERSTORE
+              Value: DEBUG
+            - Name: LOGGING_LEVEL_IO_AWSPRING_CLOUD_SECRETSMANAGER
+              Value: DEBUG               
           LogConfiguration:
             LogDriver: awsfirelens
         - Name: backend_log_router
@@ -364,51 +321,21 @@ Resources:
               ContainerPath: /tmp                   
           PortMappings:
             - ContainerPort: !FindInMap [BatchAppTaskDefinitionMap, !Ref EnvironmentType, ContainerPort]
+          HealthCheck:
+            Command:
+              - CMD-SHELL
+              - !FindInMap [BatchAppTaskDefinitionMap, !Ref EnvironmentType, HealthCheck]
+            Interval: 60
+            StartPeriod: 60
           Environment:
             - Name: TZ
               Value: Asia/Tokyo          
             - Name: SPRING_PROFILES_ACTIVE
               Value: !FindInMap [BatchAppTaskDefinitionMap, !Ref EnvironmentType, Profile]            
-            - Name: AWS_SQS_LISTENER_QUEUENAME
-              Value:
-                Fn::ImportValue: !Sub ${StackPrefix}-SQSQueueName             
-            - Name: AWS_SQS_REGION
-              Value: !Ref AWS::Region
-            - Name: AWS_S3_BUCKET
-              Value: !Ref AppDataS3BucketName
-            - Name: AWS_S3_REGION
-              Value: !Ref AWS::Region              
-            - Name: API_BACKEND_URL
-              Value: 
-                Fn::Join: 
-                  - ""
-                  - - "http://"
-                    - Fn::ImportValue: !Sub ${StackPrefix}-PrivALB-DNS                
-            - Name: SPRING_DATASOURCE_URL
-              Value:
-                Fn::Join: 
-                  - ""
-                  - - "jdbc:postgresql://"
-                    - Fn::ImportValue: !Sub ${StackPrefix}-RDSClusterEndpointAddress
-                    - ":"
-                    - Fn::ImportValue: !Sub ${StackPrefix}-RDSClusterEndpointPort
-                    - "/"
-                    - Fn::ImportValue: !Sub ${StackPrefix}-RDSDBName
-            - Name: RESILIENCE4J_TIMELIMITER_CONFIGS_DEFAULT_TIMEOUTDURATION
-              Value: 3s
-          Secrets:
-            - Name: SPRING_DATASOURCE_USERNAME
-              ValueFrom:
-                Fn::Join:
-                  - ""
-                  - - Fn::ImportValue: !Sub ${StackPrefix}-RDSSecretsManagerArn
-                    - ":username::"
-            - Name: SPRING_DATASOURCE_PASSWORD
-              ValueFrom:            
-                Fn::Join:
-                  - ""
-                  - - Fn::ImportValue: !Sub ${StackPrefix}-RDSSecretsManagerArn
-                    - ":password::"
+            - Name: LOGGING_LEVEL_IO_AWSPRING_CLOUD_PARAMETERSTORE
+              Value: DEBUG
+            - Name: LOGGING_LEVEL_IO_AWSPRING_CLOUD_SECRETSMANAGER
+              Value: DEBUG               
           LogConfiguration:
             LogDriver: awsfirelens
         - Name: batch_log_router
@@ -471,13 +398,10 @@ Resources:
               Value: Asia/Tokyo          
             - Name: SPRING_PROFILES_ACTIVE
               Value: !FindInMap [ScheduleLaunchAppTaskDefinitionMap, !Ref EnvironmentType, Profile]            
-            - Name: DELAYED_BATCH_QUEUES_SAMPLEBATCH_NAME
-              Value:
-                Fn::ImportValue: !Sub ${StackPrefix}-SQSQueueName
-            - Name: AWS_SQS_REGION
-              Value: !Ref AWS::Region       
-            - Name: BATCH_SCHEDULE_TARGETID
-              Value: SB_001              
+            - Name: LOGGING_LEVEL_IO_AWSPRING_CLOUD_PARAMETERSTORE
+              Value: DEBUG
+            - Name: LOGGING_LEVEL_IO_AWSPRING_CLOUD_SECRETSMANAGER
+              Value: DEBUG               
           LogConfiguration:
             LogDriver: awsfirelens
         - Name: schedule_log_router
@@ -528,4 +452,4 @@ Outputs:
     Description: ScheduleLaunch ECS Task Definition
     Value: !Ref ScheduleLaunchAppECSTaskDefinition
     Export:
-      Name: !Sub ${StackPrefix}-ScheduleLaunchECS-TaskDefinition      
+      Name: !Sub ${StackPrefix}-ScheduleLaunchECS-TaskDefinition

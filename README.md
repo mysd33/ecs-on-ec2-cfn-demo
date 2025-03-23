@@ -37,19 +37,31 @@
 
 * メトリックスのモニタリング
     * CloudWatch Container Insightsは有効化し、各メトリックスを可視化。
+
 * ログの転送
     * awslogsドライバを使ったCloudWatch Logsへのログ転送とFireLens+Fluent Bitによるログ転送に対応。
     * Firelensの場合はFirelensをサイドカーコンテナとして配置する必要がある。
 ![ログドライバ](img/logdriver.png)
+
 * X-Rayによる分散トレーシング・可視化
     * X-Rayを使ってアプリケーションやAWSサービス間の処理の流れをトレースし、可視化に対応。
     * X-Rayデーモンをサイドカーコンテナとして配置。
 ![X-Ray](img/xray.png)
-  * X-Rayによる可視化
+
+    * X-Rayによる可視化
 ![X-Ray可視化](img/xray-visualization.png)
-* オートスケーリング
+
+* Systems Manager Paramter Store、Secrets Managerの利用
+    * APの環境依存パラメータに関してSystems Manager Paramter Store、DBの認証情報に関してSecrets Managerを使って、アプリケーションの設定情報を外部化している。
+    * Spring Cloud for AWSの機能を使って、ECSのタスク定義の環境変数に値を設定することなく、直接APが値を取得し、Spring Bootのプロパティ管理と統合された形で利用できるようになっている。    
+
+* APのオートスケーリング
     * 平均CPU使用率のターゲット追跡スケーリングポリシーによる例に対応している。
 ![オートスケーリング](img/autoscaling.png)
+
+* Auroraのリードレプリカ活用
+    * オンライン処理方式のAPについてのDBアクセスのソフトウェアフレームワーク機能と連動し、読み取り専用のトランザクション（Springの@TransactionalのreadOnly属性がtrue）の処理では、動的にDB接続を切り替え、Aurora Serverless v2 for Postgresのリーダーエンドポイントに接続するようになっている。
+    * これにより、Auroraのリードレプリカを活用することで、拡張性の高い構成を実現している。
 
 ## 事前準備
 ### S3バケットの作成
@@ -148,7 +160,7 @@ aws cloudformation create-stack --stack-name ScheduleLaunch-CodeBuild-Stack --te
 * 取得したMavenリポジトリをS3にキャッシュする。キャッシュ用のS3のパス（バケット名/プレフィックス）を変えるには、それぞれのcfnスタック作成時のコマンドでパラメータを指定する
     * 「--parameters ParameterKey=CacheS3Location,ParameterValue=(パス名)」
 
-* 本当は、CloudFormationテンプレートのCodeBuildのSorceTypeをCodePipelineにするが、いったんDockerイメージ作成して動作確認したいので、今はCodeCommitになっている。動いてはいるので保留。
+* 本当は、CloudFormationテンプレートのCodeBuildのSourceTypeをCodePipelineにするが、いったんDockerイメージ作成して動作確認したいので、今はCodeCommitになっている。動いてはいるので保留。
 
 
 ### 4. ECRへアプリケーションの最初のDockerイメージをプッシュ
@@ -227,7 +239,7 @@ aws cloudformation validate-template --template-body file://cfn-ngw.yaml
 aws cloudformation create-stack --stack-name ECS-NATGW-Stack --template-body file://cfn-ngw.yaml
 ```
 
-## キャッシュ（ElastiCache）環境構築
+## キャッシュサーバ環境構築
 ### 1. ElastiCache for Valkey(Redis互換)のクラスタ作成
 * BFFのAP(sample-bff)ではHTTPセッションを扱うがスケールイン/アウトにも対応できるようセッションを外部化し管理するために、ElasticCache for Valkey（クラスタモード無効）を作成する。
     * 作成にしばらく時間がかかる。
@@ -239,8 +251,9 @@ aws cloudformation create-stack --stack-name ECS-ECACHE-Stack --template-body fi
 ```
 
 > [!NOTE]
-> Redisのライセンスをクラウドベンダなどによる商用サービスを制限するものに変更したため、AWSは、ElastiCacheで、RedisをフォークしたValkeyのサポートを開始しており、Redisよりも価格面、性能面でもメリットがありそうなので、Valkeyを利用するように変更した。
+> Redis7.4からのライセンスがクラウドベンダによる商用サービスを制限するものに変更されるため、AWSは、ElastiCacheで、RedisをフォークしたValkeyのサポートを開始しており、Redisよりも価格面、性能面でもメリットがありそうなので、Valkeyを利用するように変更した。
 > https://aws.amazon.com/jp/blogs/news/amazon-elasticache-and-amazon-memorydb-announce-support-for-valkey/
+> https://zenn.dev/ktny/articles/9ccd18cd19c26d
 > https://ca-srg.dev/6d99a5ff263346cbaebec589ee744db1
 
 ## RDB環境構築
@@ -274,18 +287,20 @@ aws cloudformation create-stack --stack-name ECS-SQS-Stack --template-body file:
 * DynamoDBに関しては、Backendアプリケーション起動時に、テーブルがなければ作成されるため、CloudFormationによるテーブル作成は不要となっている。
 * このため、後片付けの際、CloudFormationのスタックを削除しても、テーブル削除されないため、マネージドコンソール等から、手動で削除すること。
 
-## コンテナ（ECS）環境構築
+## ロードバランサ環境構築
 ### 1. ALBの作成
 * ECSの前方で動作するALBとデフォルトのTarget Group等を作成
-    * パラメータTargateGroupAttributesに「deregistration_delay.timeout_seconds」を「60」で設定し、ローリングアップデートの時間を短縮する工夫している。
+    * （ローリングアップデートの場合）パラメータTargateGroupAttributesに「deregistration_delay.timeout_seconds」を「60」で設定し、ローリングアップデートの時間を短縮する工夫している。
     * 実機確認し設定しているが、AP起動が遅くヘルスチェックに失敗する場合には、パラメータ「HealthCheckIntervalSeconds」の値を長く調整するとよい。
+        * ECSのServiceのパラメータ「HealthCheckGracePeriodSeconds」の値を長くしてヘルスチェックの猶予時間を調整するだけだと、なぜか、ALBのヘルスチェックが失敗するためか、1度複数タスクが起動してしまうため。
 ```sh
 aws cloudformation validate-template --template-body file://cfn-alb.yaml
 aws cloudformation create-stack --stack-name ECS-ALB-Stack --template-body file://cfn-alb.yaml
 ```
 * BlueGreenデプロイメントの場合のみ以下実行し、2つ目（Green環境）用のTarget Groupを作成
-    * パラメータTargateGroupAttributesに「deregistration_delay.timeout_seconds」を「60」で設定し、ローリングアップデートの時間を短縮する工夫している。
+    * （ローリングアップデートの場合）パラメータTargateGroupAttributesに「deregistration_delay.timeout_seconds」を「60」で設定し、ローリングアップデートの時間を短縮する工夫している。
     * 実機確認し設定しているが、AP起動が遅くヘルスチェックに失敗する場合には、パラメータ「HealthCheckIntervalSeconds」の値を長く調整するとよい。
+        * ECSのServiceのパラメータ「HealthCheckGracePeriodSeconds」の値を長くしてヘルスチェックの猶予時間を調整するだけだと、なぜか、ALBのヘルスチェックが失敗するためか、1度複数タスクが起動してしまうため。    
 ```sh
 aws cloudformation validate-template --template-body file://cfn-tg-bg.yaml
 aws cloudformation create-stack --stack-name ECS-TG-BG-Stack --template-body file://cfn-tg-bg.yaml
@@ -295,54 +310,61 @@ aws cloudformation create-stack --stack-name ECS-TG-BG-Stack --template-body fil
 ~~aws cloudformation validate-template --template-body file://cfn-tg.yaml~~
 ~~aws cloudformation create-stack --stack-name ECS-TG-Stack --template-body file://cfn-tg.yaml~~
 
-### 2. ECSクラスタの作成
+## パラメータストア環境構築
+### 1. Systems Manager Parameter Storeの作成
+```sh
+aws cloudformation validate-template --template-body file://cfn-ssm-param.yaml
+aws cloudformation create-stack --stack-name ECS-SSM-PARAM-Stack --template-body file://cfn-ssm-param.yaml
+```
+
+* AP内のデータ保存用のS3バケット名を変えるには、それぞれのcfnスタック作成時のコマンドでパラメータを指定する
+    * 「--parameters ParameterKey=AppDataS3BucketName,ParameterValue=(バケット名)」
+
+
+## コンテナ（ECS）環境構築
+### 1. ECSクラスタの作成
 ```sh
 aws cloudformation validate-template --template-body file://cfn-ecs-cluster.yaml
 aws cloudformation create-stack --stack-name ECS-CLUSTER-Stack --template-body file://cfn-ecs-cluster.yaml
 ```
-* 必要に応じてキーペア名のパラメータ値を修正して使用
-    * 「Mappings:」の「FrontendClusterDefinitionMap:」の「KeyPairName:」
-    * 「Mappings:」の「BackendClusterDefinitionMap:」の「KeyPairName:」  
-        * 「myKeyPair」となっているところを自分のキーペア名に修正
-### 3. ECSタスク定義の作成
-#### 3-1. ログ転送先がCloud Watch Logs（awslogsドライバ）の場合
+
+### 2. ECSタスク定義の作成
+#### 2-1. ログ転送先がCloud Watch Logs（awslogsドライバ）の場合
 * awslogsドライバのタスク定義を作成
 ```sh
 aws cloudformation validate-template --template-body file://cfn-ecs-task.yaml
 aws cloudformation create-stack --stack-name ECS-TASK-Stack --template-body file://cfn-ecs-task.yaml
 ```
 
-* AP内のデータ保存用のS3バケット名を変えるには、それぞれのcfnスタック作成時のコマンドでパラメータを指定する
-    * 「--parameters ParameterKey=AppDataS3BucketName,ParameterValue=(バケット名)」
-
-#### 3-2. カスタムログルーティング（FireLens + Fluent Bit）の場合
+#### 2-2. カスタムログルーティング（FireLens + Fluent Bit）の場合
 * awsfirelensドライバのタスク定義を作成
 ```sh
 aws cloudformation validate-template --template-body file://cfn-ecs-task-firelens.yaml
 aws cloudformation create-stack --stack-name ECS-TASK-Stack --template-body file://cfn-ecs-task-firelens.yaml
 ```
 
-* AP内のデータ保存用のS3バケット名を変えるには、それぞれのcfnスタック作成時のコマンドでパラメータを指定する
-    * 「--parameters ParameterKey=AppDataS3BucketName,ParameterValue=(バケット名)」
-
-### 4. ECSサービスの実行
-#### 4-1. ローリングアップデートの場合
+### 3. ECSサービスの実行
+#### 3-1. ローリングアップデートの場合
 * ローリングアップデートの場合は以下を実行
 ```sh
 aws cloudformation validate-template --template-body file://cfn-ecs-service.yaml
 aws cloudformation create-stack --stack-name ECS-SERVICE-Stack --template-body file://cfn-ecs-service.yaml
 ```
 * パラメータMinimumHealthyPercentを0%にしてローリングアップデートの時間を短縮する工夫をしている
+* 実機確認し設定しているが、AP起動が遅くヘルスチェックに失敗する場合には、パラメータ「HealthCheckGracePeriodSeconds」の値を長くしてヘルスチェックの猶予時間を調整するとよい。
 
-#### 4-2. BlueGreenデプロイメントの場合
+#### 3-2. BlueGreenデプロイメントの場合
 * BlueGreenデプロイメントの場合は以下のパラメータを指定して起動
     * バッチAPについては、ローリングアップデート
+
 ```sh
 aws cloudformation validate-template --template-body file://cfn-ecs-service.yaml
 aws cloudformation create-stack --stack-name ECS-SERVICE-Stack --template-body file://cfn-ecs-service.yaml --parameters ParameterKey=DeployType,ParameterValue=CODE_DEPLOY
 ```
 
-### 5. ECS Scheduled Taskの起動
+* 実機確認し設定しているが、AP起動が遅くヘルスチェックに失敗する場合には、パラメータ「HealthCheckGracePeriodSeconds」の値を長くしてヘルスチェックの猶予時間を調整するとよい。
+
+### 4. ECS Scheduled Taskの起動
 * スタックが作成されると、1分ごとにスケジュールバッチ起動用アプリケーションのコンテナが起動する
     * サンプルAPの仕様上、バッチ起動するごとに登録データが増えていくので、動作確認できたらスタック削除するとよい。
 ```sh
@@ -350,7 +372,7 @@ aws cloudformation validate-template --template-body file://cfn-ecs-scheduleeven
 aws cloudformation create-stack --stack-name ECS-SCHEDULE-EVENT-Stack --template-body file://cfn-ecs-scheduleevent.yaml
 ```
 
-### 6. APの実行確認
+### 5. APの実行確認
 * Backendアプリケーションの確認  
     * VPCのパブリックサブネット上にBationのEC2を起動
     ```sh
@@ -360,7 +382,7 @@ aws cloudformation create-stack --stack-name ECS-SCHEDULE-EVENT-Stack --template
 
     * 必要に応じてキーペア名等のパラメータを指定
         * 「--parameters ParameterKey=KeyPairName,ParameterValue=myKeyPair」
-    * マネージドコンソールからEC2にセッションマネージャで接続し、以下のコマンドを「curl http://(Private ALBのDNS名)/api/v1/todos/」を入力するとバックエンドサービスAPのJSONレスポンスが返却
+    * マネージドコンソールからEC2にセッションマネージャで接続し、以下のコマンドを「curl http://(Private ALBのDNS名)/api/v1/todos」を入力するとバックエンドサービスAPのJSONレスポンスが返却
         * CloudFormationの「ECS-SERVICE-Stack」スタックの出力「BackendServiceURI」のURLを参照
 
 * BFFアプリケーションの確認
@@ -439,7 +461,7 @@ psql -h (Auroraのクラスタエンドポイント) -U postgres -d testdb
 > select * from todo;  
 ```
 
-### 7. Application AutoScalingの設定
+### 6. Application AutoScalingの設定
 * 以下のコマンドで、ターゲット追跡スケーリングポリシーでオートスケーリング設定
 ```sh
 aws cloudformation validate-template --template-body file://cfn-ecs-autoscaling.yaml
@@ -520,6 +542,13 @@ aws cloudformation create-stack --stack-name Backend-CodeDeploy-Stack --template
     * 「--parameters ParameterKey=ArtifactS3BucketName,ParameterValue=(バケット名)」  
 * 現状、テンプレート内の「DeploymentConfigName」が線形リリース（「CodeDeployDefault.ECSLinear10PercentEvery1Minutes」）になっているが、一度に切り替えたい場合は、通常のBlueGreenデプロイメント（CodeDeployDefault.ECSAllAtOnce）に変えるとよい。    
 ### 2. BlueGreenデプロイメント対応のCodePipelineの作成
+
+> [!WARNING]
+> 以前、実施できたはずの、BFFアプリケーションのブルーグリーンデプロイメントが、なぜか、
+> 既に8080ポートが使用されている（Web server failed to start. Port 8080 was already in use.）というエラーが出てしまい
+> APが起動できず、が失敗する。  
+> なぜ8080ポートが重複するのは分からず、原因不明のため、試行錯誤中である。
+
 * BFFアプリケーション
 ```sh
 aws cloudformation validate-template --template-body file://cfn-bff-codepipeline-bg.yaml
