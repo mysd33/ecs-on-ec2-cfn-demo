@@ -55,6 +55,13 @@
     * APの環境依存パラメータに関してSystems Manager Paramter Store、DBの認証情報に関してSecrets Managerを使って、アプリケーションの設定情報を外部化している。
     * Spring Cloud for AWSの機能を使って、ECSのタスク定義の環境変数に値を設定することなく、直接APが値を取得し、Spring Bootのプロパティ管理と統合された形で利用できるようになっている。    
 
+    ![パラメータ外部化](img/ssmparam_scretsmaanger.png)
+
+* JVM等のAPメトリクスのCloudWatchメトリクスの転送    
+    * Spring Cloud for AWSの機能を使って、Spring Actuatorで取得できるJVM等のAPのメトリクスをCloudWatchメトリクスと統合して転送できるようになっている。
+
+    ![CloudWatchメトリクス統合](img/cloudwatch-metrics.png)
+
 * APのオートスケーリング
     * 平均CPU使用率のターゲット追跡スケーリングポリシーによる例に対応している。
 ![オートスケーリング](img/autoscaling.png)

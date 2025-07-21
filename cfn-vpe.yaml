@@ -65,6 +65,21 @@ Resources:
         - Fn::ImportValue: !Sub ${StackPrefix}-VPCEndpointSecurityGroup-ID                      
       PrivateDnsEnabled: true
 
+# CloudWatch Metrics VPC Endpoint
+  CloudWatchMetricsVPCEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:      
+      VpcEndpointType: Interface
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.monitoring
+      SubnetIds:
+        - Fn::ImportValue: !Sub ${StackPrefix}-PrivateSubnetOneId
+        - Fn::ImportValue: !Sub ${StackPrefix}-PrivateSubnetTwoId
+      VpcId: 
+        Fn::ImportValue: !Sub ${StackPrefix}-VPC-ID          
+      SecurityGroupIds: 
+        - Fn::ImportValue: !Sub ${StackPrefix}-VPCEndpointSecurityGroup-ID                      
+      PrivateDnsEnabled: true      
+
 # CloudFormation VPC Endpoint for ECS on EC2 (cfn-signal from ECS on EC2 to Cloudformation)
   CfnVPCEndpoint:
     Type: AWS::EC2::VPCEndpoint

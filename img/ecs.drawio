@@ -1,6 +1,6 @@
-<mxfile host="Electron" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/24.7.17 Chrome/128.0.6613.36 Electron/32.0.1 Safari/537.36" version="24.7.17" pages="2">
+<mxfile host="Electron" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/28.0.4 Chrome/138.0.7204.97 Electron/37.2.1 Safari/537.36" version="28.0.4" pages="2">
   <diagram id="Ht1M8jgEwFfnCIfOTk4-" name="RDB版">
-    <mxGraphModel dx="1436" dy="853" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+    <mxGraphModel dx="1426" dy="841" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -239,7 +239,7 @@
         <mxCell id="GkKB_Pt7ogExMrjGRy1k-40" value="Docker&lt;br&gt;Image" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#D45B07;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;pointerEvents=1;shape=mxgraph.aws4.container_registry_image;" parent="GkKB_Pt7ogExMrjGRy1k-2" vertex="1">
           <mxGeometry x="322" y="129" width="30" height="30" as="geometry" />
         </mxCell>
-        <mxCell id="GkKB_Pt7ogExMrjGRy1k-80" value="APログ出力・&lt;br&gt;Container Insightsへの&lt;br&gt;メトリックス送信" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=1;entryDx=0;entryDy=0;entryPerimeter=0;dashed=1;labelBackgroundColor=default;fontSize=11;" parent="GkKB_Pt7ogExMrjGRy1k-2" source="oW-woZPXJWIOO5Py-aOr-1" target="GkKB_Pt7ogExMrjGRy1k-44" edge="1">
+        <mxCell id="GkKB_Pt7ogExMrjGRy1k-80" value="APログ出力・&lt;br&gt;メトリックス送信" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=1;entryDx=0;entryDy=0;entryPerimeter=0;dashed=1;labelBackgroundColor=default;fontSize=11;" parent="GkKB_Pt7ogExMrjGRy1k-2" source="oW-woZPXJWIOO5Py-aOr-1" target="GkKB_Pt7ogExMrjGRy1k-44" edge="1">
           <mxGeometry x="-0.0226" y="-10" relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="506" y="205" />
@@ -370,7 +370,7 @@
     </mxGraphModel>
   </diagram>
   <diagram name="DynamoDB併用版" id="TjT20uoB2OXFSkJhSHYz">
-    <mxGraphModel dx="1744" dy="1036" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+    <mxGraphModel dx="1426" dy="841" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
       <root>
         <mxCell id="F8HkY5Kcd1XuB177vxZ4-0" />
         <mxCell id="F8HkY5Kcd1XuB177vxZ4-1" parent="F8HkY5Kcd1XuB177vxZ4-0" />
@@ -607,7 +607,7 @@
         <mxCell id="F8HkY5Kcd1XuB177vxZ4-62" value="Docker&lt;br&gt;Image" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#D45B07;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;pointerEvents=1;shape=mxgraph.aws4.container_registry_image;" parent="F8HkY5Kcd1XuB177vxZ4-3" vertex="1">
           <mxGeometry x="322" y="129" width="30" height="30" as="geometry" />
         </mxCell>
-        <mxCell id="F8HkY5Kcd1XuB177vxZ4-63" value="APログ出力・&lt;br&gt;Container Insightsへの&lt;br&gt;メトリックス送信" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=1;entryDx=0;entryDy=0;entryPerimeter=0;dashed=1;labelBackgroundColor=default;fontSize=11;" parent="F8HkY5Kcd1XuB177vxZ4-3" source="F8HkY5Kcd1XuB177vxZ4-17" target="F8HkY5Kcd1XuB177vxZ4-61" edge="1">
+        <mxCell id="F8HkY5Kcd1XuB177vxZ4-63" value="APログ出力・&lt;br&gt;メトリックス送信" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=1;entryDx=0;entryDy=0;entryPerimeter=0;dashed=1;labelBackgroundColor=default;fontSize=11;" parent="F8HkY5Kcd1XuB177vxZ4-3" source="F8HkY5Kcd1XuB177vxZ4-17" target="F8HkY5Kcd1XuB177vxZ4-61" edge="1">
           <mxGeometry x="-0.0226" y="-10" relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="506" y="205" />

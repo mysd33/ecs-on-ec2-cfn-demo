@@ -186,8 +186,8 @@ Resources:
         - Key: Name
           Value: !Sub ${StackPrefix}-ScheduleLaunchECSTaskRole
 
-  #IAM Policy for CloudWatch Access
-  CloudWatchPolicy:
+  #IAM Policy for CloudWatch Logs Access
+  CloudWatchLogsPolicy:
     Type: AWS::IAM::Policy      
     Properties:
       PolicyDocument:
@@ -199,13 +199,30 @@ Resources:
           - logs:PutLogEvents
           Effect: Allow
           Resource:
-          - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:*            
-      PolicyName: !Sub ${StackPrefix}-CloudWatchPolicy
+          - !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:*            
+      PolicyName: !Sub ${StackPrefix}-CloudWatchLogsPolicy
       Roles:
       - !Ref FrontendECSTaskRole
       - !Ref BackendECSTaskRole
       - !Ref BatchECSTaskRole        
       - !Ref ScheduleLaunchECSTaskRole
+
+  #IAM Policy for CloudWatch Metrics Access
+  CloudWatchMetricsPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyDocument:
+        Statement:
+        - Action:
+          - cloudwatch:PutMetricData
+          Effect: Allow
+          Resource: '*'
+      PolicyName: !Sub ${StackPrefix}-CloudWatchMetricsPolicy
+      Roles:
+      - !Ref FrontendECSTaskRole
+      - !Ref BackendECSTaskRole
+      - !Ref BatchECSTaskRole        
+      - !Ref ScheduleLaunchECSTaskRole  
   
   #IAM Policy for S3 Access(For FireLens & S3 Access by App)
   S3AccessPolicy:
@@ -220,7 +237,7 @@ Resources:
           - s3:ListBucket          
           Effect: Allow
           Resource:
-          - !Sub arn:aws:s3:::*                    
+          - arn:aws:s3:::*                    
       PolicyName: !Sub ${StackPrefix}-S3Policy
       Roles:
       - !Ref FrontendECSTaskRole
@@ -242,7 +259,7 @@ Resources:
           - sqs:GetQueueUrl
           Effect: Allow
           Resource:
-          - !Sub arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:*
+          - !Sub arn:${AWS::Partition}:sqs:${AWS::Region}:${AWS::AccountId}:*
       PolicyName: !Sub ${StackPrefix}-SQSTaskPolicy
       Roles:
       - !Ref FrontendECSTaskRole
@@ -272,8 +289,8 @@ Resources:
           - dynamodb:CreateTable
           Effect: Allow
           Resource:
-          - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/*
-          - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/*/index/*
+          - !Sub arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/*
+          - !Sub arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/*/index/*
         - Action:
           - dynamodb:GetShardIterator
           - dynamodb:Scan
@@ -284,7 +301,7 @@ Resources:
           - dynamodb:DescribeLimits
           Effect: Allow
           Resource:          
-          - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/*/index/*          
+          - !Sub arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/*/index/*          
       PolicyName: !Sub ${StackPrefix}-DynamoDBTaskPolicy
       Roles:
       - !Ref BackendECSTaskRole
@@ -300,7 +317,7 @@ Resources:
           - secretsmanager:GetSecretValue
           Effect: Allow
           Resource:
-          - !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:*
+          - !Sub arn:${AWS::Partition}:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:*
       PolicyName: !Sub ${StackPrefix}-SecretsManagerTaskPolicy
       Roles:
       - !Ref FrontendECSTaskRole
@@ -318,7 +335,7 @@ Resources:
           - ssm:GetParametersByPath
           Effect: Allow
           Resource:
-          - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/*
+          - !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/*
       PolicyName: !Sub ${StackPrefix}-SSMParameterStoreTaskPolicy
       Roles:
       - !Ref FrontendECSTaskRole
@@ -415,22 +432,22 @@ Resources:
           - logs:PutLogEvents
           Effect: Allow
           Resource:
-          - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${BffCodeBuildProjectName}
-          - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${BffCodeBuildProjectName}:*          
-          - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${BackendCodeBuildProjectName}
-          - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${BackendCodeBuildProjectName}:*          
-          - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${BatchCodeBuildProjectName}
-          - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${BatchCodeBuildProjectName}:*
-          - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${ScheduleLaunchCodeBuildProjectName}
-          - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${ScheduleLaunchCodeBuildProjectName}:*
+          - !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${BffCodeBuildProjectName}
+          - !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${BffCodeBuildProjectName}:*          
+          - !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${BackendCodeBuildProjectName}
+          - !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${BackendCodeBuildProjectName}:*          
+          - !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${BatchCodeBuildProjectName}
+          - !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${BatchCodeBuildProjectName}:*
+          - !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${ScheduleLaunchCodeBuildProjectName}
+          - !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${ScheduleLaunchCodeBuildProjectName}:*
         - Action:
           - codecommit:GitPull
           Effect: Allow
           Resource:          
-            - !Sub arn:aws:codecommit:${AWS::Region}:${AWS::AccountId}:${BffCodeCommitRepositoryName}
-            - !Sub arn:aws:codecommit:${AWS::Region}:${AWS::AccountId}:${BackendCodeCommitRepositoryName}            
-            - !Sub arn:aws:codecommit:${AWS::Region}:${AWS::AccountId}:${BatchCodeCommitRepositoryName}                        
-            - !Sub arn:aws:codecommit:${AWS::Region}:${AWS::AccountId}:${ScheduleLaunchCodeCommitRepositoryName}                                    
+            - !Sub arn:${AWS::Partition}:codecommit:${AWS::Region}:${AWS::AccountId}:${BffCodeCommitRepositoryName}
+            - !Sub arn:${AWS::Partition}:codecommit:${AWS::Region}:${AWS::AccountId}:${BackendCodeCommitRepositoryName}            
+            - !Sub arn:${AWS::Partition}:codecommit:${AWS::Region}:${AWS::AccountId}:${BatchCodeCommitRepositoryName}                        
+            - !Sub arn:${AWS::Partition}:codecommit:${AWS::Region}:${AWS::AccountId}:${ScheduleLaunchCodeCommitRepositoryName}                                    
         - Action:
           - ecr:BatchCheckLayerAvailability
           - ecr:CompleteLayerUpload
@@ -452,10 +469,10 @@ Resources:
           - s3:GetBucketLocation
           Effect: Allow
           Resource: 
-            - !Sub arn:aws:s3:::${ArtifactS3BucketName}
-            - !Sub arn:aws:s3:::${ArtifactS3BucketName}/*      
-            - !Sub arn:aws:s3:::${CacheS3Location}            
-            - !Sub arn:aws:s3:::${CacheS3Location}/*
+            - !Sub arn:${AWS::Partition}:s3:::${ArtifactS3BucketName}
+            - !Sub arn:${AWS::Partition}:s3:::${ArtifactS3BucketName}/*      
+            - !Sub arn:${AWS::Partition}:s3:::${CacheS3Location}            
+            - !Sub arn:${AWS::Partition}:s3:::${CacheS3Location}/*
       PolicyName: !Sub ${StackPrefix}-CodeBuildPolicy
       Roles:
       - !Ref CodeBuildRole
@@ -498,10 +515,10 @@ Resources:
               - Effect: Allow
                 Action: codepipeline:StartPipelineExecution
                 Resource:
-                  - !Sub arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${BackendCodePipelineName}
-                  - !Sub arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${BffCodePipelineName}
-                  - !Sub arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${BatchCodePipelineName}                  
-                  - !Sub arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${ScheduleLaunchCodePipelineName}                                    
+                  - !Sub arn:${AWS::Partition}:codepipeline:${AWS::Region}:${AWS::AccountId}:${BackendCodePipelineName}
+                  - !Sub arn:${AWS::Partition}:codepipeline:${AWS::Region}:${AWS::AccountId}:${BffCodePipelineName}
+                  - !Sub arn:${AWS::Partition}:codepipeline:${AWS::Region}:${AWS::AccountId}:${BatchCodePipelineName}                  
+                  - !Sub arn:${AWS::Partition}:codepipeline:${AWS::Region}:${AWS::AccountId}:${ScheduleLaunchCodePipelineName}                                    
   
   #IAM Role and IAM Policy for CodePipeline
   #TODO: Review Required Actions of Policy Document
