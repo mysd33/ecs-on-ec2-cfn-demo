@@ -16,19 +16,19 @@ Resources:
   CommonSQSParameters:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: /config/common/aws.sqs.region
+      Name: /config/common/example.sqs.region
       Type: String
       Value: !Ref AWS::Region
   CommonS3RegionParameter:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: /config/common/aws.s3.region
+      Name: /config/common/example.s3.region
       Type: String
       Value: !Ref AWS::Region
   CommonS3BucketParameter:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: /config/common/aws.s3.bucket
+      Name: /config/common/example.s3.bucket
       Type: String
       Value: !Ref AppDataS3BucketName
   CommonRedisHostParameter:
@@ -61,7 +61,7 @@ Resources:
   CommonWriteDatasourceUrlParameter:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: /config/common/spring.datasource.write.url
+      Name: /config/common/example.datasource.write.url
       Type: String
       Value:
         Fn::Join: 
@@ -75,7 +75,7 @@ Resources:
   CommonReadDatasourceUrlParameter:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: /config/common/spring.datasource.read.url
+      Name: /config/common/example.datasource.read.url
       Type: String
       Value:
         Fn::Join: 
@@ -90,7 +90,7 @@ Resources:
   SampleBffApiBackendUrlParameter:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: /config/sample-bff/api.backend.url
+      Name: /config/sample-bff/example.api.backend.url
       Type: String
       Value: 
         Fn::Join: 
@@ -106,21 +106,21 @@ Resources:
   SampleBffDelayedBatchQueueParameter:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: /config/sample-bff/delayed.batch.queue
+      Name: /config/sample-bff/example.delayed.batch.queue
       Type: String
       Value:
         Fn::ImportValue: !Sub ${StackPrefix}-SQSQueueName      
   SampleBffDatasourceDynamicRoutingParameter:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: /config/sample-bff/spring.datasource.dynamic-routing.enabled
+      Name: /config/sample-bff/example.datasource.dynamic-routing.enabled
       Type: String
       Value: true
   # sample-backend
   SampleBackendDatasourceDynamicRoutingParameter:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: /config/sample-backend/spring.datasource.dynamic-routing.enabled
+      Name: /config/sample-backend/example.datasource.dynamic-routing.enabled
       Type: String
       Value: true
 
@@ -128,14 +128,14 @@ Resources:
   SampleBatchSqsListenerQueueNameParameter:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: /config/sample-batch/aws.sqs.listener.queue-name
+      Name: /config/sample-batch/example.sqs.listener.queue-name
       Type: String
       Value:
         Fn::ImportValue: !Sub ${StackPrefix}-SQSQueueName      
   SampleBatchApiBackendUrlParameter:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: /config/sample-batch/api.backend.url
+      Name: /config/sample-batch/example.api.backend.url
       Type: String
       Value: 
         Fn::Join: 
@@ -152,13 +152,13 @@ Resources:
   SampleScheduleLaunchDelayedBatchQueueParameter:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: /config/sample-schedulelaunch/delayed.batch.queues.samplebatch.name
+      Name: /config/sample-schedulelaunch/example.delayed.batch.queues.samplebatch.name
       Type: String
       Value:
         Fn::ImportValue: !Sub ${StackPrefix}-SQSQueueName
   SampleScheduleLaunchBatchScheduleTargetIdParameter:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: /config/sample-schedulelaunch/batch.schedule.target-id
+      Name: /config/sample-schedulelaunch/example.batch.schedule.target-id
       Type: String
       Value: SB_001
