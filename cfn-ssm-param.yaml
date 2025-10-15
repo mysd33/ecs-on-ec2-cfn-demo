@@ -9,7 +9,16 @@ Parameters:
   AppDataS3BucketName:
     Description: Location of S3 Bucket For Application Data
     Type: String
-    Default: mysd33bucket123
+    Default: mysd33bucket123  
+  # PostgreSQL Timeout Settings for Aurora Auto Pause
+  # https://docs.aws.amazon.com/ja_jp/AmazonRDS/latest/AuroraUserGuide/aurora-serverless-v2-auto-pause.html#auto-pause-how-it-works
+  # PostgreSQL Parameters
+  # https://jdbc.postgresql.org/documentation/use/#connection-parameters
+  PostgresConnectTimeout:
+    Description: The timeout value used for socket connect operations. JDBC Driver default value is 10. max value is 2147484. 0 means timeout disabled.
+    Type: String
+    Default: "30"
+
 
 Resources:
   #common
@@ -58,6 +67,7 @@ Resources:
             - Fn::ImportValue: !Sub ${StackPrefix}-RDSClusterEndpointPort
             - "/"
             - Fn::ImportValue: !Sub ${StackPrefix}-RDSDBName
+            - !Sub "?connectTimeout=${PostgresConnectTimeout}"
   CommonWriteDatasourceUrlParameter:
     Type: AWS::SSM::Parameter
     Properties:
@@ -72,6 +82,7 @@ Resources:
             - Fn::ImportValue: !Sub ${StackPrefix}-RDSClusterEndpointPort
             - "/"
             - Fn::ImportValue: !Sub ${StackPrefix}-RDSDBName
+            - !Sub "?connectTimeout=${PostgresConnectTimeout}"
   CommonReadDatasourceUrlParameter:
     Type: AWS::SSM::Parameter
     Properties:
@@ -86,6 +97,7 @@ Resources:
             - Fn::ImportValue: !Sub ${StackPrefix}-RDSClusterEndpointPort
             - "/"
             - Fn::ImportValue: !Sub ${StackPrefix}-RDSDBName
+            - !Sub "?connectTimeout=${PostgresConnectTimeout}"
   # sample-bff
   SampleBffApiBackendUrlParameter:
     Type: AWS::SSM::Parameter

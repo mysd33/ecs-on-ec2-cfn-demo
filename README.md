@@ -273,7 +273,7 @@ aws cloudformation create-stack --stack-name ECS-ECACHE-Stack --template-body fi
 * Auroraの認証情報をSecretsManagerに作成する。
 ```sh
 aws cloudformation validate-template --template-body file://cfn-secrets.yaml
-aws cloudformation create-stack --stack-name Demo-SM-Stack --template-body file://cfn-secrets.yaml --parameters ParameterKey=AuroraDBUsername,ParameterValue=postgres
+aws cloudformation create-stack --stack-name ECS-SM-Stack --template-body file://cfn-secrets.yaml --parameters ParameterKey=AuroraDBUsername,ParameterValue=postgres
 ```
 * SecretsManagerが生成したパスワード等を確認しておく
 ```sh
