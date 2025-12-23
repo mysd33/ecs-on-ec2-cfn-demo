@@ -115,10 +115,10 @@ Resources:
       Name: /config/sample-bff/resilience4j.timelimiter.configs.default.timeoutDuration
       Type: String
       Value: 3s            
-  SampleBffDelayedBatchQueueParameter:
+  SampleBffAsyncQueueParameter:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: /config/sample-bff/example.delayed.batch.queue
+      Name: /config/sample-bff/example.async.queue
       Type: String
       Value:
         Fn::ImportValue: !Sub ${StackPrefix}-SQSQueueName      
@@ -161,10 +161,10 @@ Resources:
       Type: String
       Value: 3s
   #sample-schedulelaunch
-  SampleScheduleLaunchDelayedBatchQueueParameter:
+  SampleScheduleLaunchBatchQueuesSampleBatchNameParameter:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: /config/sample-schedulelaunch/example.delayed.batch.queues.samplebatch.name
+      Name: /config/sample-schedulelaunch/example.batch.queues.samplebatch.name
       Type: String
       Value:
         Fn::ImportValue: !Sub ${StackPrefix}-SQSQueueName
