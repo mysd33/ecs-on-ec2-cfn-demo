@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: SSM Parameter Store Template for CloudFormation Demo. Depends on cfn-ecahce-valkey.yaml, cfn-rds-aurora.yaml, cfn-sqs.yaml, cfn-alb.yaml
+Description: SSM Parameter Store Template for CloudFormation Demo. Depends on cfn-ecahce-valkey.yaml, cfn-rds-aurora.yaml, cfn-sqs.yaml, cfn-dynamodb.yaml, cfn-alb.yaml
 
 Parameters: 
   StackPrefix:
@@ -40,6 +40,19 @@ Resources:
       Name: /config/common/example.s3.bucket
       Type: String
       Value: !Ref AppDataS3BucketName
+  CommonDynamoDBRegionParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /config/common/example.dynamodb.region
+      Type: String
+      Value: !Ref AWS::Region
+  CommonDynamoDBTodoTableNameParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /config/common/example.dynamodb.todo-tablename
+      Type: String
+      Value:
+        Fn::ImportValue: !Sub ${StackPrefix}-TodoTableName
   CommonRedisHostParameter:
     Type: AWS::SSM::Parameter
     Properties:
@@ -98,17 +111,17 @@ Resources:
             - "/"
             - Fn::ImportValue: !Sub ${StackPrefix}-RDSDBName
             - !Sub "?connectTimeout=${PostgresConnectTimeout}"
-  # sample-bff
-  SampleBffApiBackendUrlParameter:
+  CommonApiBackendUrlParameter:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: /config/sample-bff/example.api.backend.url
+      Name: /config/common/example.api.backend.url
       Type: String
       Value: 
         Fn::Join: 
           - ""
           - - "http://"
-            - Fn::ImportValue: !Sub ${StackPrefix}-PrivALB-DNS
+            - Fn::ImportValue: !Sub ${StackPrefix}-PrivALB-DNS            
+  # sample-bff
   SampleBffTimeoutDurationParameter:
     Type: AWS::SSM::Parameter
     Properties:
@@ -143,17 +156,7 @@ Resources:
       Name: /config/sample-batch/example.sqs.listener.queue-name
       Type: String
       Value:
-        Fn::ImportValue: !Sub ${StackPrefix}-SQSQueueName      
-  SampleBatchApiBackendUrlParameter:
-    Type: AWS::SSM::Parameter
-    Properties:
-      Name: /config/sample-batch/example.api.backend.url
-      Type: String
-      Value: 
-        Fn::Join: 
-          - ""
-          - - "http://"
-            - Fn::ImportValue: !Sub ${StackPrefix}-PrivALB-DNS
+        Fn::ImportValue: !Sub ${StackPrefix}-SQSQueueName
   SampleBatchTimeoutDurationParameter:
     Type: AWS::SSM::Parameter
     Properties:
@@ -168,9 +171,3 @@ Resources:
       Type: String
       Value:
         Fn::ImportValue: !Sub ${StackPrefix}-SQSQueueName
-  SampleScheduleLaunchBatchScheduleTargetIdParameter:
-    Type: AWS::SSM::Parameter
-    Properties:
-      Name: /config/sample-schedulelaunch/example.batch.schedule.target-id
-      Type: String
-      Value: SB_001

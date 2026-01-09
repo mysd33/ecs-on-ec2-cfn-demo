@@ -297,8 +297,10 @@ aws cloudformation create-stack --stack-name ECS-SQS-Stack --template-body file:
 ```
 
 ## DynamoDB環境構築
-* DynamoDBに関しては、Backendアプリケーション起動時に、テーブルがなければ作成されるため、CloudFormationによるテーブル作成は不要となっている。
-* このため、後片付けの際、CloudFormationのスタックを削除しても、テーブル削除されないため、マネージドコンソール等から、手動で削除すること。
+```sh
+aws cloudformation validate-template --template-body file://cfn-dynamodb.yaml
+aws cloudformation create-stack --stack-name ECS-DYNAMODB-Stack --template-body file://cfn-dynamodb.yaml
+```
 
 ## ロードバランサ環境構築
 ### 1. ALBの作成

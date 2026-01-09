@@ -402,6 +402,8 @@ Resources:
               Value: DEBUG
             - Name: LOGGING_LEVEL_IO_AWSPRING_CLOUD_SECRETSMANAGER
               Value: DEBUG               
+            - Name: EXAMPLE_BATCH_SCHEDULE_TARGETID
+              Value: SB_001                                
           LogConfiguration:
             LogDriver: awsfirelens
         - Name: schedule_log_router

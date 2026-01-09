@@ -1,0 +1,36 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: DynamoDB Template for CloudFormation Demo.
+#Metadata: 
+
+Parameters: 
+  StackPrefix:
+    Description: Stack Resource Name Prefix
+    Type: String
+    Default: Demo
+  TodoTableName:
+    Type: String
+    Default: Todo
+
+#Mappings: 
+
+#Conditions: 
+
+Resources: 
+# DynamoDB
+  TodoTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Ref TodoTableName
+      KeySchema:
+        - AttributeName: todoId
+          KeyType:  HASH
+      AttributeDefinitions:
+        - AttributeName: todoId
+          AttributeType: S
+      BillingMode: PAY_PER_REQUEST  
+Outputs:
+  TodoTableNameOutput:
+    Description: "Todo DynamoDB Table Name"
+    Value: !Ref TodoTable
+    Export:
+      Name: !Sub ${StackPrefix}-TodoTableName
