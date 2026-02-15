@@ -1,4 +1,4 @@
-# SpringBoot APをECS on EC2で動作させCode系でCI/CDするCloudFormationサンプルテンプレート
+# SpringBoot APをECS/Fargateで動作させCode系でCI/CDするCloudFormationサンプルテンプレート
 
 ## 構成
 * システム構成図
@@ -35,9 +35,9 @@
         * BlueGreenデプロメント
 ![BlueGreenデプロイメント](img/ecs-bluegreen-deployment.png)
 
-!!! warning
-    [2025年7月](https://aws.amazon.com/jp/blogs/news/accelerate-safe-software-releases-with-new-built-in-blue-green-deployments-in-amazon-ecs/)よりECSの組み込みのBlueGreenデプロイメントが利用できるようになったが、本サンプルでは、CodeDeployを使った従来のBlueGreenデプロイメントのままとしている。  
-    今後、対応を検討。
+> [!WARNING]
+>    [2025年7月](https://aws.amazon.com/jp/blogs/news/accelerate-safe-software-releases-with-new-built-in-blue-green-deployments-in-amazon-ecs/)よりECSの組み込みのBlueGreenデプロイメントが利用できるようになったが、本サンプルでは、CodeDeployを使った従来のBlueGreenデプロイメントのままとしている。  
+>    今後、対応を検討。
 
 * メトリックスのモニタリング
     * CloudWatch Container Insightsは有効化し、各メトリックスを可視化。
@@ -58,7 +58,7 @@
 ![X-Ray](img/xray.png)
 
     * X-Rayによる可視化
-![X-Ray可視化](img/xray-visualization.png)
+        ![X-Ray可視化](img/xray-visualization.png)
 
 * Systems Manager Paramter Store、Secrets Managerの利用
     * APの環境依存パラメータに関してSystems Manager Paramter Store、DBの認証情報に関してSecrets Managerを使って、アプリケーションの設定情報を外部化している。
@@ -282,8 +282,9 @@ aws secretsmanager get-secret-value --secret-id /secrets/database-secrets
 
 ### 2. Aurora Serverless v2 for PostgreSQLのクラスタの作成
 * 各サンプルAPではRDBでデータ管理するため、Aurora Serverless v2 for PostgreSQLを作成する。  
-    * 最小0ACUで、[自動一時停止機能](https://docs.aws.amazon.com/ja_jp/AmazonRDS/latest/AuroraUserGuide/aurora-serverless-v2-auto-pause.html)を有効化にすることでコストを抑えるようにしている。
     * 作成にしばらく時間がかかる。（20分程度）
+    * 最小0ACUで、[自動一時停止機能](https://docs.aws.amazon.com/ja_jp/AmazonRDS/latest/AuroraUserGuide/aurora-serverless-v2-auto-pause.html)を有効化にすることでコストを抑えるようにしている。
+
 ```sh
 aws cloudformation validate-template --template-body file://cfn-rds-aurora.yaml
 aws cloudformation create-stack --stack-name ECS-Aurora-Stack --template-body file://cfn-rds-aurora.yaml
@@ -297,6 +298,7 @@ aws cloudformation create-stack --stack-name ECS-SQS-Stack --template-body file:
 ```
 
 ## DynamoDB環境構築
+### 1. DynamoDBのホテルテーブル作成
 ```sh
 aws cloudformation validate-template --template-body file://cfn-dynamodb.yaml
 aws cloudformation create-stack --stack-name ECS-DYNAMODB-Stack --template-body file://cfn-dynamodb.yaml

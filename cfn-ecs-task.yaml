@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: ECS Task Definition Template for CloudFormation Demo. Depends on cfn-iam.yaml, cfn-ecr.yaml, cfn-ssm-param.yaml.
+Description: ECS Task Definition Template for CloudFormation Demo. Depends on cfn-iam.yaml, cfn-ecr.yaml, cfn-ecache-redis.yaml, cfn-rds-aurora.yaml, cfn-sqs.yaml, cfn-ssm-param.yaml
 #Metadata: 
 
 Parameters: 
@@ -7,6 +7,10 @@ Parameters:
     Description: Stack Resource Name Prefix
     Type: String
     Default: Demo
+  ProjectName:
+    Description: Project Name
+    Type: String
+    Default: example
   EnvironmentType:
     Description: The environment type
     Type: String
@@ -183,9 +187,16 @@ Resources:
             - Name: TZ
               Value: Asia/Tokyo
             - Name: SPRING_PROFILES_ACTIVE
-              Value: !FindInMap [FrontendAppTaskDefinitionMap, !Ref EnvironmentType, Profile]            
+              Value: !FindInMap [FrontendAppTaskDefinitionMap, !Ref EnvironmentType, Profile]
+            - Name: PROJECT_NAME
+              Value: !Ref ProjectName
+            - Name: ENV_NAME
+              Value: !Ref EnvironmentType
             - Name: LOGGING_LEVEL_IO_AWSPRING_CLOUD_PARAMETERSTORE
               Value: DEBUG
+            - Name: DB_SECRETS_NAME
+              Value:
+                Fn::ImportValue: !Sub ${StackPrefix}-RDSSecretsManagerName              
             - Name: LOGGING_LEVEL_IO_AWSPRING_CLOUD_SECRETSMANAGER
               Value: DEBUG
           LogConfiguration:
@@ -245,8 +256,15 @@ Resources:
               Value: Asia/Tokyo          
             - Name: SPRING_PROFILES_ACTIVE
               Value: !FindInMap [BackendServiceTaskDefinitionMap, !Ref EnvironmentType, Profile]
+            - Name: PROJECT_NAME
+              Value: !Ref ProjectName
+            - Name: ENV_NAME
+              Value: !Ref EnvironmentType              
             - Name: LOGGING_LEVEL_IO_AWSPRING_CLOUD_PARAMETERSTORE
               Value: DEBUG
+            - Name: DB_SECRETS_NAME
+              Value:
+                Fn::ImportValue: !Sub ${StackPrefix}-RDSSecretsManagerName              
             - Name: LOGGING_LEVEL_IO_AWSPRING_CLOUD_SECRETSMANAGER
               Value: DEBUG              
           LogConfiguration:
@@ -305,9 +323,16 @@ Resources:
             - Name: TZ
               Value: Asia/Tokyo           
             - Name: SPRING_PROFILES_ACTIVE
-              Value: !FindInMap [BatchAppTaskDefinitionMap, !Ref EnvironmentType, Profile]                           
+              Value: !FindInMap [BatchAppTaskDefinitionMap, !Ref EnvironmentType, Profile]            
+            - Name: PROJECT_NAME
+              Value: !Ref ProjectName
+            - Name: ENV_NAME
+              Value: !Ref EnvironmentType              
             - Name: LOGGING_LEVEL_IO_AWSPRING_CLOUD_PARAMETERSTORE
               Value: DEBUG
+            - Name: DB_SECRETS_NAME
+              Value:
+                Fn::ImportValue: !Sub ${StackPrefix}-RDSSecretsManagerName              
             - Name: LOGGING_LEVEL_IO_AWSPRING_CLOUD_SECRETSMANAGER
               Value: DEBUG              
           LogConfiguration:
@@ -358,11 +383,13 @@ Resources:
             - Name: TZ
               Value: Asia/Tokyo           
             - Name: SPRING_PROFILES_ACTIVE
-              Value: !FindInMap [ScheduleLaunchAppTaskDefinitionMap, !Ref EnvironmentType, Profile]             
+              Value: !FindInMap [ScheduleLaunchAppTaskDefinitionMap, !Ref EnvironmentType, Profile]            
+            - Name: PROJECT_NAME
+              Value: !Ref ProjectName
+            - Name: ENV_NAME
+              Value: !Ref EnvironmentType              
             - Name: LOGGING_LEVEL_IO_AWSPRING_CLOUD_PARAMETERSTORE
-              Value: DEBUG
-            - Name: LOGGING_LEVEL_IO_AWSPRING_CLOUD_SECRETSMANAGER
-              Value: DEBUG              
+              Value: DEBUG            
             - Name: EXAMPLE_BATCH_SCHEDULE_TARGETID
               Value: SB_001
           LogConfiguration:
