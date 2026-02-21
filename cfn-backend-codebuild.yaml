@@ -71,7 +71,7 @@ Resources:
           - Name: ECS_TASK_DEFINITION
             Value: !Sub ${StackPrefix}-ecstask-backend-app
           - Name: ECS_CONTAINER_NAME
-            Value: !Sub ecsdemo-backend-service
+            Value: ecsdemo-backend-service
       ServiceRole:
         Fn::ImportValue: !Sub ${StackPrefix}-CodeBuildRole-Arn
       TimeoutInMinutes: 10

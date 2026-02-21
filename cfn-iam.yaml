@@ -257,6 +257,7 @@ Resources:
           - sqs:ReceiveMessage
           - sqs:DeleteMessage
           - sqs:GetQueueUrl
+          - sqs:ChangeMessageVisibility
           Effect: Allow
           Resource:
           - !Sub arn:${AWS::Partition}:sqs:${AWS::Region}:${AWS::AccountId}:*
@@ -358,6 +359,7 @@ Resources:
         - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
         - arn:aws:iam::aws:policy/AmazonSSMReadOnlyAccess
         - arn:aws:iam::aws:policy/SecretsManagerReadWrite
+        - arn:aws:iam::aws:policy/CloudWatchLogsFullAccess
       Tags:
         - Key: Name
           Value: !Sub ${StackPrefix}-ECSTaskExecutionRole

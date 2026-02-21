@@ -70,7 +70,7 @@ Resources:
           - Name: ECS_TASK_DEFINITION
             Value: !Sub ${StackPrefix}-ecstask-frontend-app
           - Name: ECS_CONTAINER_NAME
-            Value: !Sub ecsdemo-frontend-app            
+            Value: ecsdemo-frontend-app            
       ServiceRole:
         Fn::ImportValue: !Sub ${StackPrefix}-CodeBuildRole-Arn 
       TimeoutInMinutes: 10      
