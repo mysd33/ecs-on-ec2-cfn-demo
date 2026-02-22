@@ -45,6 +45,18 @@ Parameters:
     Description: Batch CodePipeline Name
     Type: String
     Default: demo-batch-pipeline
+  BatchJobflowCodeBuildProjectName:
+    Description: Batch Jobflow CodeBuild Project Name
+    Type: String
+    Default: demo-batch-jobflow-ci
+  BatchJobflowCodeCommitRepositoryName:
+    Description: Batch Jobflow Source Code Repository Location of CodeCommit
+    Type: String
+    Default: sample-batch-jobflow
+  BatchJobflowCodePipelineName:
+    Description: Batch Jobflow CodePipeline Name
+    Type: String
+    Default: demo-batch-jobflow-pipeline
   ScheduleLaunchCodeBuildProjectName:
     Description: ScheduleLaunch CodeBuild Project Name
     Type: String
@@ -439,7 +451,9 @@ Resources:
           - !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${BackendCodeBuildProjectName}
           - !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${BackendCodeBuildProjectName}:*          
           - !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${BatchCodeBuildProjectName}
-          - !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${BatchCodeBuildProjectName}:*
+          - !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${BatchCodeBuildProjectName}:*          
+          - !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${BatchJobflowCodeBuildProjectName}
+          - !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${BatchJobflowCodeBuildProjectName}:*          
           - !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${ScheduleLaunchCodeBuildProjectName}
           - !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${ScheduleLaunchCodeBuildProjectName}:*
         - Action:
@@ -448,7 +462,8 @@ Resources:
           Resource:          
             - !Sub arn:${AWS::Partition}:codecommit:${AWS::Region}:${AWS::AccountId}:${BffCodeCommitRepositoryName}
             - !Sub arn:${AWS::Partition}:codecommit:${AWS::Region}:${AWS::AccountId}:${BackendCodeCommitRepositoryName}            
-            - !Sub arn:${AWS::Partition}:codecommit:${AWS::Region}:${AWS::AccountId}:${BatchCodeCommitRepositoryName}                        
+            - !Sub arn:${AWS::Partition}:codecommit:${AWS::Region}:${AWS::AccountId}:${BatchCodeCommitRepositoryName}
+            - !Sub arn:${AWS::Partition}:codecommit:${AWS::Region}:${AWS::AccountId}:${BatchJobflowCodeCommitRepositoryName}
             - !Sub arn:${AWS::Partition}:codecommit:${AWS::Region}:${AWS::AccountId}:${ScheduleLaunchCodeCommitRepositoryName}                                    
         - Action:
           - ecr:BatchCheckLayerAvailability
@@ -469,6 +484,7 @@ Resources:
           - s3:GetObjectVersion
           - s3:GetBucketAcl
           - s3:GetBucketLocation
+          - s3:ListBucket
           Effect: Allow
           Resource: 
             - !Sub arn:${AWS::Partition}:s3:::${ArtifactS3BucketName}
@@ -519,7 +535,8 @@ Resources:
                 Resource:
                   - !Sub arn:${AWS::Partition}:codepipeline:${AWS::Region}:${AWS::AccountId}:${BackendCodePipelineName}
                   - !Sub arn:${AWS::Partition}:codepipeline:${AWS::Region}:${AWS::AccountId}:${BffCodePipelineName}
-                  - !Sub arn:${AWS::Partition}:codepipeline:${AWS::Region}:${AWS::AccountId}:${BatchCodePipelineName}                  
+                  - !Sub arn:${AWS::Partition}:codepipeline:${AWS::Region}:${AWS::AccountId}:${BatchCodePipelineName}
+                  - !Sub arn:${AWS::Partition}:codepipeline:${AWS::Region}:${AWS::AccountId}:${BatchJobflowCodePipelineName}
                   - !Sub arn:${AWS::Partition}:codepipeline:${AWS::Region}:${AWS::AccountId}:${ScheduleLaunchCodePipelineName}                                    
   
   #IAM Role and IAM Policy for CodePipeline

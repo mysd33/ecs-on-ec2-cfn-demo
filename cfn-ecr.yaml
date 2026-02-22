@@ -21,6 +21,10 @@ Parameters:
     Description: Batch App Repository Name
     Type: String    
     Default: sample-batch
+  BatchJobflowRepositoryName:
+    Description: Batch Job Flow App Repository Name
+    Type: String    
+    Default: sample-batch-jobflow
   ScheduleLaunchRepositoryName:
     Description: ScheduleLaunch App Repository Name
     Type: String    
@@ -33,6 +37,10 @@ Parameters:
     Description: Backend Sidecar Fluent Bit Repository Name
     Type: String
     Default: fluent-bit-backend
+  BatchJobflowFluentBitRepositoryName:
+    Description: Batch Job Flow Sidecar Fluent Bit Repository Name
+    Type: String
+    Default: fluent-bit-batch-jobflow
   BatchFluentBitRepositoryName:
     Description: Batch Sidecar Fluent Bit Repository Name
     Type: String
@@ -73,6 +81,13 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub ${StackPrefix}-BatchECRRepository
+  BatchJobflowECRRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: !Ref BatchJobflowRepositoryName
+      Tags:
+        - Key: Name
+          Value: !Sub ${StackPrefix}-BatchJobflowECRRepository
   ScheduleLaunchECRRepository:
     Type: AWS::ECR::Repository
     Properties:
@@ -102,6 +117,13 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub ${StackPrefix}-BatchFluentBitECRRepository          
+  BatchJobflowFluentBitECRRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: !Ref BatchJobflowFluentBitRepositoryName
+      Tags:
+        - Key: Name
+          Value: !Sub ${StackPrefix}-BatchJobflowFluentBitECRRepository 
   ScheduleLaunchFluentBitECRRepository:
     Type: AWS::ECR::Repository
     Properties:
@@ -141,7 +163,15 @@ Outputs:
     Description: Batch App Repository URI
     Value: !GetAtt BatchECRRepository.RepositoryUri
     Export:
-      Name: !Sub ${StackPrefix}-BatchECRRepositoryUri      
+      Name: !Sub ${StackPrefix}-BatchECRRepositoryUri
+  BatchJobflowECRRepositoryArn:
+    Description: Batch Job Flow App Repository Arn
+    Value: !GetAtt BatchJobflowECRRepository.Arn
+  BatchJobflowECRRepositoryUri:
+    Description: Batch Job Flow App Repository URI
+    Value: !GetAtt BatchJobflowECRRepository.RepositoryUri
+    Export:
+      Name: !Sub ${StackPrefix}-BatchJobflowECRRepositoryUri
   ScheduleLaunchECRRepositoryArn:
     Description: ScheduleLaunch App Repository Arn
     Value: !GetAtt ScheduleLaunchECRRepository.Arn    
