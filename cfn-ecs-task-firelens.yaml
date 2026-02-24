@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: ECS Task Definition Template for CloudFormation Demo. Depends on cfn-iam.yaml, cfn-ecr.yaml, cfn-ecache-redis.yaml, cfn-rds-aurora.yaml, cfn-sqs.yaml, cfn-ssm-param.yaml
+Description: ECS Task Definition Template for CloudFormation Demo. Depends on cfn-iam.yaml, cfn-ecr.yaml,  cfn-sm.yaml, cfn-ssm-param.yaml
 #Metadata: 
 
 Parameters: 
