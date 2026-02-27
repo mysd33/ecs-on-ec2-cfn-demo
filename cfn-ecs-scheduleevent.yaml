@@ -11,31 +11,125 @@ Parameters:
     Type: String
     Default: rate(1 minute)
     #Default: cron(0/1 * * * ? *)
+  ECSTaskContainerName:
+    Type: String
+    Default: ecsdemo-schedulelaunch-app
 
 #Mappings: 
 
 #Conditions: 
 
-Resources: 
-  ECSSchedule:
-    Type: AWS::Events::Rule
+Resources:
+  #SB_001
+  SB001ECSSchedule:
+    Type: AWS::Scheduler::Schedule
     Properties:
       ScheduleExpression: !Ref ScheduleExpression
-      Targets:
-        - Id: !Sub ${StackPrefix}-schedulelaunch-app
-          Arn: 
-            Fn::ImportValue: !Sub ${StackPrefix}-Batch-ECSCluster-Arn
-          RoleArn: 
-            Fn::ImportValue: !Sub ${StackPrefix}-ECSEventRole-Arn
-          EcsParameters:
-            LaunchType: EC2
-            TaskDefinitionArn: 
-              Fn::ImportValue: !Sub ${StackPrefix}-ScheduleLaunchECS-TaskDefinition
-            NetworkConfiguration:
-              AwsVpcConfiguration:
-                AssignPublicIp: DISABLED
-                Subnets:
-                  - Fn::ImportValue: !Sub ${StackPrefix}-PrivateSubnetOneId
-                  - Fn::ImportValue: !Sub ${StackPrefix}-PrivateSubnetTwoId 
+      FlexibleTimeWindow:
+        Mode: FLEXIBLE
+        MaximumWindowInMinutes: 1
+      Target:
+        Arn: 
+          Fn::ImportValue: !Sub ${StackPrefix}-Batch-ECSCluster-Arn
+        RoleArn: 
+          Fn::ImportValue: !Sub ${StackPrefix}-ECSEventRole-Arn
+        EcsParameters:
+          LaunchType: EC2
+          TaskDefinitionArn: 
+            Fn::ImportValue: !Sub ${StackPrefix}-ScheduleLaunchECS-TaskDefinition
+          NetworkConfiguration:
+            AwsvpcConfiguration:
+              AssignPublicIp: DISABLED
+              Subnets:
+                - Fn::ImportValue: !Sub ${StackPrefix}-PrivateSubnetOneId
+                - Fn::ImportValue: !Sub ${StackPrefix}-PrivateSubnetTwoId 
+        Input: !Sub |
+          {
+            "containerOverrides": [
+              {
+                "name": "${ECSTaskContainerName}",
+                "environment": [
+                  {
+                    "name": "EXAMPLE_BATCH_SCHEDULE_TARGETID",
+                    "value": "SB_001"
+                  }
+                ]
+              }
+            ]
+          }
 
+  #SB_002
+  SB002ECSSchedule:
+    Type: AWS::Scheduler::Schedule
+    Properties:
+      ScheduleExpression: !Ref ScheduleExpression
+      FlexibleTimeWindow:
+        Mode: FLEXIBLE
+        MaximumWindowInMinutes: 1
+      Target:
+        Arn: 
+          Fn::ImportValue: !Sub ${StackPrefix}-Batch-ECSCluster-Arn
+        RoleArn: 
+          Fn::ImportValue: !Sub ${StackPrefix}-ECSEventRole-Arn
+        EcsParameters:
+          LaunchType: EC2
+          TaskDefinitionArn: 
+            Fn::ImportValue: !Sub ${StackPrefix}-ScheduleLaunchECS-TaskDefinition
+          NetworkConfiguration:
+            AwsvpcConfiguration:
+              AssignPublicIp: DISABLED
+              Subnets:
+                - Fn::ImportValue: !Sub ${StackPrefix}-PrivateSubnetOneId
+                - Fn::ImportValue: !Sub ${StackPrefix}-PrivateSubnetTwoId 
+        Input: !Sub |
+          {
+            "containerOverrides": [
+              {
+                "name": "${ECSTaskContainerName}",
+                "environment": [
+                  {
+                    "name": "EXAMPLE_BATCH_SCHEDULE_TARGETID",
+                    "value": "SB_002"
+                  }
+                ]
+              }
+            ]
+          }
+  #SB_004
+  SB004ECSSchedule:
+    Type: AWS::Scheduler::Schedule
+    Properties:
+      ScheduleExpression: !Ref ScheduleExpression
+      FlexibleTimeWindow:
+        Mode: FLEXIBLE
+        MaximumWindowInMinutes: 1
+      Target:
+        Arn: 
+          Fn::ImportValue: !Sub ${StackPrefix}-Batch-ECSCluster-Arn
+        RoleArn: 
+          Fn::ImportValue: !Sub ${StackPrefix}-ECSEventRole-Arn
+        EcsParameters:
+          LaunchType: EC2
+          TaskDefinitionArn: 
+            Fn::ImportValue: !Sub ${StackPrefix}-ScheduleLaunchECS-TaskDefinition
+          NetworkConfiguration:
+            AwsvpcConfiguration:
+              AssignPublicIp: DISABLED
+              Subnets:
+                - Fn::ImportValue: !Sub ${StackPrefix}-PrivateSubnetOneId
+                - Fn::ImportValue: !Sub ${StackPrefix}-PrivateSubnetTwoId 
+        Input: !Sub |
+          {
+            "containerOverrides": [
+              {
+                "name": "${ECSTaskContainerName}",
+                "environment": [
+                  {
+                    "name": "EXAMPLE_BATCH_SCHEDULE_TARGETID",
+                    "value": "SB_004"
+                  }
+                ]
+              }
+            ]
+          }
 #Outputs:

@@ -390,8 +390,8 @@ Resources:
               Value: !Ref EnvironmentType              
             - Name: LOGGING_LEVEL_IO_AWSPRING_CLOUD_PARAMETERSTORE
               Value: DEBUG            
-            - Name: EXAMPLE_BATCH_SCHEDULE_TARGETID
-              Value: SB_001
+            #- Name: EXAMPLE_BATCH_SCHEDULE_TARGETID
+            #  Value: SB_001
           LogConfiguration:
             LogDriver: awslogs
             Options:
