@@ -34,7 +34,7 @@
     * 純バッチ処理方式（ジョブフロー連携）
         * スケジュールイベント（EventBridge）により起動したジョブフロー（StepFunctions）から、AWS Batch上でコマンドライン実行されるバッチアプリケーションのジョブを実行する純バッチ処理にも対応している。
         
-            TBD: StepFunctions版の構成図
+            ![純バッチ処理イメージ](img/ecs-batch-jobflow.png)
 
 > [!WARNING]
 >   Step Functionsを使ったサンプルは、実装中。
@@ -188,7 +188,7 @@ aws cloudformation validate-template --template-body file://cfn-codebuild-batch.
 aws cloudformation create-stack --stack-name Batch-CodeBuild-Stack --template-body file://cfn-codebuild-batch.yaml
 ```
 
-* スケジュールバッチ起動用アプリケーション
+* スケジュールバッチ起動用アプリケーション（メッセージ連携バッチ向け）
 ```sh
 aws cloudformation validate-template --template-body file://cfn-codebuild-schedulelaunch.yaml
 aws cloudformation create-stack --stack-name ScheduleLaunch-CodeBuild-Stack --template-body file://cfn-codebuild-schedulelaunch.yaml
@@ -372,7 +372,7 @@ aws cloudformation create-stack --stack-name ECS-SSM-PARAM-Stack --template-body
     * 「--parameters ParameterKey=AppDataS3BucketName,ParameterValue=(バケット名)」
 
 
-## コンテナ（ECS）環境構築
+## コンテナ環境構築
 ### 1. ECSクラスタの作成
 ```sh
 aws cloudformation validate-template --template-body file://cfn-ecs-cluster.yaml
@@ -415,22 +415,41 @@ aws cloudformation create-stack --stack-name ECS-SERVICE-Stack --template-body f
 
 * 実機確認し設定しているが、AP起動が遅くヘルスチェックに失敗する場合には、パラメータ「HealthCheckGracePeriodSeconds」の値を長くしてヘルスチェックの猶予時間を調整するとよい。
 
-### 4. ECS Scheduled Taskの起動
-* スタックが作成されると、1分ごとにスケジュールバッチ起動用アプリケーションのコンテナが起動する
+### 4. スケジュール起動でのバッチ処理ECS Taskの起動
+* スタックが作成されると、EventBridge Schedulerにより1分ごとにスケジュールバッチ起動用アプリケーションのコンテナが起動する
     * サンプルAPの仕様上、バッチ起動するごとに登録データが増えていくので、動作確認できたらスタック削除するとよい。
 ```sh
 aws cloudformation validate-template --template-body file://cfn-ecs-scheduleevent.yaml
 aws cloudformation create-stack --stack-name ECS-SCHEDULE-EVENT-Stack --template-body file://cfn-ecs-scheduleevent.yaml
 ```
 
-### 5. AWS Batchのジョブ定義の作成
+### 5. ジョブフローでのバッチ処理の起動
+
+#### 5.1 AWS Batchのジョブ定義等の作成
+##### 5.1-1 ログ転送先がCloud Watch Logs（awslogsドライバ）の場合
+* awslogsドライバでのジョブ定義を作成
+
+```sh
+aws cloudformation validate-template --template-body file://cfn-awsbatch.yaml
+aws cloudformation create-stack --stack-name AWS-BATCH-Stack --template-body file://cfn-awsbatch.yaml
+```
+
+##### 5.1-2 カスタムログルーティング（FireLens + Fluent Bit）の場合
 * TBD: 今後作成予定
+
+```sh
+TBD
+```
   
-### 6. StepFunctionsのステートマシンの作成
+#### 5.2 StepFunctionsのステートマシンの作成
 * TBD: 今後作成予定
+    * AWS BatchからStep Functionsの呼び出しに関する、VPC Endpoint、IAMロールの設定も必要になるはず
 
+```sh
+TBD
+```
 
-### 7. APの実行確認
+### 6. APの実行確認
 * Backendアプリケーションの確認  
     * VPCのパブリックサブネット上にBationのEC2を起動
     ```sh
@@ -519,7 +538,7 @@ psql -h (Auroraのクラスタエンドポイント) -U postgres -d testdb
 > select * from todo;  
 ```
 
-### 8. Application AutoScalingの設定
+### 7. Application AutoScalingの設定
 * 以下のコマンドで、ターゲット追跡スケーリングポリシーでオートスケーリング設定
 ```sh
 aws cloudformation validate-template --template-body file://cfn-ecs-autoscaling.yaml

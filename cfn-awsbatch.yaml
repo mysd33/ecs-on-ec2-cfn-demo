@@ -1,0 +1,263 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: AWS Batch Job Definition Template for CloudFormation Demo. Depends on cfn-iam.yaml, cfn-ecr.yaml, cfn-rds-aurora.yaml, cfn-ssm-param.yaml
+#Metadata: 
+
+Parameters: 
+  StackPrefix:
+    Description: Stack Resource Name Prefix
+    Type: String
+    Default: Demo
+  ProjectName:
+    Description: Project Name
+    Type: String
+    Default: example
+  EnvironmentType:
+    Description: The environment type
+    Type: String
+    AllowedValues: ["Dev", "Staging", "Production"]
+    Default: Production
+    ConstraintDescription: must be a prod or test
+
+Mappings: 
+  BatchAppJobDefinitionMap:
+    Production:
+      "ContainerImage" : "sample-batch-jobflow:latest"
+      "Vcpus" : 1
+      "Memory" : 2048
+      "AdotVcpus" : 1
+      "AdotMemory" : 2048
+      "MaxVcpus" : 4
+      "Profile" : "production,log_container"
+    Staging:
+      "ContainerImage" : "sample-batch:latest"
+      "Vcpus" : 1
+      "Memory" : 2048
+      "AdotVcpus" : 1
+      "AdotMemory" : 2048
+      "MaxVcpus" : 4
+      "Profile" : "production,log_container"
+    Dev:      
+      "ContainerImage" : "sample-batch-jobflow:latest"
+      "Vcpus" : 1
+      "Memory" : 2048
+      "AdotVcpus" : 1
+      "AdotMemory" : 2048
+      "MaxVcpus" : 4
+      "Profile" : "production,log_container"
+    # TODO : Add Configuration for each environment if needed
+
+#Conditions: 
+
+Resources: 
+  #Log Group
+  BatchJobflowAppLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/batch/job/${StackPrefix}-BatchJobflowApp-Definition"
+      RetentionInDays: 7
+
+  # Comupute Environment
+  BatchComputeEnvironment:
+    Type: AWS::Batch::ComputeEnvironment
+    Properties:
+      ComputeEnvironmentName: !Sub "${StackPrefix}-BatchComputeEnvironment"
+      Type: MANAGED
+      State: ENABLED
+      ComputeResources:
+        Type: EC2        
+        MaxvCpus: !FindInMap [BatchAppJobDefinitionMap, !Ref EnvironmentType, MaxVcpus]
+        Subnets:
+          - Fn::ImportValue: !Sub ${StackPrefix}-PrivateSubnetOneId
+          - Fn::ImportValue: !Sub ${StackPrefix}-PrivateSubnetTwoId          
+        SecurityGroupIds:          
+          - Fn::ImportValue: !Sub ${StackPrefix}-PrivateECSSecurityGroup-ID
+      ServiceRole: 
+        Fn::ImportValue: !Sub ${StackPrefix}-AWSBatchServiceRole-Arn
+      Tags: {"Name": !Sub "${StackPrefix}-BatchComputeEnvironment"}
+          
+  # Batch Job Queue
+  BatchJobQueue:
+    Type: AWS::Batch::JobQueue
+    Properties:
+      JobQueueName: !Sub "${StackPrefix}-BatchJobQueue"
+      State: ENABLED
+      Priority: 1
+      ComputeEnvironmentOrder:
+        - Order: 1
+          ComputeEnvironment: !Ref BatchComputeEnvironment
+      Tags: {"Name": !Sub "${StackPrefix}-BatchJobQueue"}
+
+  # JobDefinition  
+  # Job901
+  Job901JobDefinition:
+    Type: AWS::Batch::JobDefinition
+    Properties:
+      JobDefinitionName: !Sub "${StackPrefix}-Job901-Definition"
+      Type: container
+      PlatformCapabilities:         
+        - EC2        
+      EcsProperties:  
+        TaskProperties:
+          - ExecutionRoleArn:
+              Fn::ImportValue: !Sub ${StackPrefix}-ECSTaskExecutionRole-Arn
+            TaskRoleArn: 
+              Fn::ImportValue: !Sub ${StackPrefix}-BatchJobflowJobRole-Arn
+            Volumes:
+              - Name: tmp                 
+            Containers:
+              - Name: job901
+                Command: ["--spring.batch.job.name=job901", "inputData=input901", "taskToken=dummy"]
+                Image:
+                  Fn::Join:
+                      - ""
+                      - - !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/
+                        - !FindInMap [BatchAppJobDefinitionMap, !Ref EnvironmentType, ContainerImage]
+                ResourceRequirements:
+                  - Type: VCPU
+                    Value: !FindInMap [BatchAppJobDefinitionMap, !Ref EnvironmentType, Vcpus]
+                  - Type: MEMORY
+                    Value: !FindInMap [BatchAppJobDefinitionMap, !Ref EnvironmentType, Memory]
+                ReadonlyRootFilesystem: true
+                MountPoints:
+                  - SourceVolume: tmp                
+                    ContainerPath: /tmp
+                Environment:
+                  - Name: ENVIRONMENT_TYPE
+                    Value: !Ref EnvironmentType
+                  - Name: TZ
+                    Value: Asia/Tokyo          
+                  - Name: SPRING_PROFILES_ACTIVE
+                    Value: !FindInMap [BatchAppJobDefinitionMap, !Ref EnvironmentType, Profile]
+                  - Name: PROJECT_NAME
+                    Value: !Ref ProjectName
+                  - Name: ENV_NAME
+                    Value: !Ref EnvironmentType              
+                  - Name: LOGGING_LEVEL_IO_AWSPRING_CLOUD_PARAMETERSTORE
+                    Value: DEBUG
+                  - Name: DB_SECRETS_NAME
+                    Value:
+                      Fn::ImportValue: !Sub ${StackPrefix}-RDSSecretsManagerName              
+                  - Name: LOGGING_LEVEL_IO_AWSPRING_CLOUD_SECRETSMANAGER
+                    Value: DEBUG
+                  # ADOT Environment Variables
+                  # TODO: parameterize service name and namespace            
+                  - Name: OTEL_RESOURCE_ATTRIBUTES
+                    Value: service.name=sample-backend-jobflow,service.namespace=demo
+                  - Name: OTEL_LOGS_EXPORTER
+                    Value: none
+                  - Name: OTEL_METRICS_EXPORTER
+                    Value: none              
+                LogConfiguration:
+                  LogDriver: awslogs
+                  Options:
+                    awslogs-group: !Ref BatchJobflowAppLogGroup
+                    awslogs-region: !Ref AWS::Region
+                    awslogs-stream-prefix: "batch"
+              - Name: aws-collector
+                Image:
+                  Fn::ImportValue: !Sub ${StackPrefix}-AdotCollectorECRRepositoryUri          
+                ResourceRequirements:
+                  - Type: VCPU
+                    Value: !FindInMap [BatchAppJobDefinitionMap, !Ref EnvironmentType, AdotVcpus]
+                  - Type: MEMORY
+                    Value: !FindInMap [BatchAppJobDefinitionMap, !Ref EnvironmentType, AdotMemory]
+                Command:
+                  - "--config=/etc/ecs/ecs-xray.yaml"
+                LogConfiguration:
+                  LogDriver: awslogs
+                  Options:
+                    awslogs-create-group: true
+                    awslogs-group: /ecs/ecs-aws-otel-sidecar-collector-bj
+                    awslogs-region: !Ref "AWS::Region"
+                    awslogs-stream-prefix: ecs      
+                Environment:
+                  - Name: TZ
+                    Value: Asia/Tokyo
+      Tags: {"Name": !Sub "${StackPrefix}-Job901-Definition"}    
+    
+  #job902
+  Job902JobDefinition:
+    Type: AWS::Batch::JobDefinition
+    Properties:
+      JobDefinitionName: !Sub "${StackPrefix}-Job902-Definition"
+      Type: container
+      PlatformCapabilities:         
+        - EC2
+      EcsProperties:  
+        TaskProperties:
+          - ExecutionRoleArn:
+              Fn::ImportValue: !Sub ${StackPrefix}-ECSTaskExecutionRole-Arn
+            TaskRoleArn: 
+              Fn::ImportValue: !Sub ${StackPrefix}-BatchJobflowJobRole-Arn
+            Volumes:
+              - Name: tmp                 
+            Containers:
+              - Name: job902
+                Command: ["--spring.batch.job.name=job902", "inputData='{\"result\":\"result_job901\"}'", "taskToken=dummy"]
+                Image:
+                  Fn::Join:
+                      - ""
+                      - - !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/
+                        - !FindInMap [BatchAppJobDefinitionMap, !Ref EnvironmentType, ContainerImage]
+                ResourceRequirements:
+                  - Type: VCPU
+                    Value: !FindInMap [BatchAppJobDefinitionMap, !Ref EnvironmentType, Vcpus]
+                  - Type: MEMORY
+                    Value: !FindInMap [BatchAppJobDefinitionMap, !Ref EnvironmentType, Memory]
+                ReadonlyRootFilesystem: true
+                MountPoints:
+                  - SourceVolume: tmp                
+                    ContainerPath: /tmp
+                Environment:
+                  - Name: ENVIRONMENT_TYPE
+                    Value: !Ref EnvironmentType
+                  - Name: TZ
+                    Value: Asia/Tokyo          
+                  - Name: SPRING_PROFILES_ACTIVE
+                    Value: !FindInMap [BatchAppJobDefinitionMap, !Ref EnvironmentType, Profile]
+                  - Name: PROJECT_NAME
+                    Value: !Ref ProjectName
+                  - Name: ENV_NAME
+                    Value: !Ref EnvironmentType              
+                  - Name: LOGGING_LEVEL_IO_AWSPRING_CLOUD_PARAMETERSTORE
+                    Value: DEBUG
+                  - Name: DB_SECRETS_NAME
+                    Value:
+                      Fn::ImportValue: !Sub ${StackPrefix}-RDSSecretsManagerName              
+                  - Name: LOGGING_LEVEL_IO_AWSPRING_CLOUD_SECRETSMANAGER
+                    Value: DEBUG
+                  # ADOT Environment Variables
+                  # TODO: parameterize service name and namespace            
+                  - Name: OTEL_RESOURCE_ATTRIBUTES
+                    Value: service.name=sample-backend-jobflow,service.namespace=demo
+                  - Name: OTEL_LOGS_EXPORTER
+                    Value: none
+                  - Name: OTEL_METRICS_EXPORTER
+                    Value: none              
+                LogConfiguration:
+                  LogDriver: awslogs
+                  Options:
+                    awslogs-group: !Ref BatchJobflowAppLogGroup
+                    awslogs-region: !Ref AWS::Region
+                    awslogs-stream-prefix: "batch"
+              - Name: aws-collector
+                Image:
+                  Fn::ImportValue: !Sub ${StackPrefix}-AdotCollectorECRRepositoryUri
+                ResourceRequirements:
+                  - Type: VCPU
+                    Value: !FindInMap [BatchAppJobDefinitionMap, !Ref EnvironmentType, AdotVcpus]                  
+                  - Type: MEMORY
+                    Value: !FindInMap [BatchAppJobDefinitionMap, !Ref EnvironmentType, AdotMemory]                    
+                Command:
+                  - "--config=/etc/ecs/ecs-xray.yaml"
+                LogConfiguration:
+                  LogDriver: awslogs
+                  Options:
+                    awslogs-create-group: true
+                    awslogs-group: /ecs/ecs-aws-otel-sidecar-collector-bj
+                    awslogs-region: !Ref "AWS::Region"
+                    awslogs-stream-prefix: ecs      
+                Environment:
+                  - Name: TZ
+                    Value: Asia/Tokyo
+#Outputs:

@@ -104,28 +104,7 @@ Resources:
         - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
       Tags:
         - Key: Name
-          Value: !Sub ${StackPrefix}-BastionRole
-  #IAM Role for ECS on EC2 AutoScaling LaunchConfiguration
-  ECSRole:
-    Type: AWS::IAM::Role
-    Properties:
-      Path: /
-      AssumeRolePolicyDocument:
-        Statement:
-          - Action: sts:AssumeRole
-            Effect: Allow
-            Principal:
-              Service: ec2.amazonaws.com
-      ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role
-  
-  ECSIamInstanceProfile:
-    Type: AWS::IAM::InstanceProfile
-    Properties:
-      Path: /
-      Roles:
-        - !Ref ECSRole
-
+          Value: !Sub ${StackPrefix}-BastionRole        
   #IAM Role for Frontend ECS Task
   FrontendECSTaskRole:
     Type: AWS::IAM::Role
@@ -626,11 +605,6 @@ Outputs:
       Value: !Ref BastionInstanceProfile
       Export: 
         Name: !Sub ${StackPrefix}-BastionInstanceProfile
-  ECSIamInstanceProfileID:
-    Description: ECSIamInstanceProfile ID
-    Value: !Ref ECSIamInstanceProfile
-    Export: 
-      Name: !Sub ${StackPrefix}-ECSIamInstanceProfile-ID
   FrontendECSTaskRoleArn:
     Description: FrontendECSTaskRole Arn
     Value: !GetAtt FrontendECSTaskRole.Arn
@@ -656,6 +630,11 @@ Outputs:
     Value: !GetAtt BatchJobflowJobRole.Arn
     Export: 
       Name: !Sub ${StackPrefix}-BatchJobflowJobRole-Arn
+  BatchServiceRoleArn:
+    Description: AWSBatchServiceRole Arn
+    Value: !GetAtt AWSBatchServiceRole.Arn
+    Export: 
+      Name: !Sub ${StackPrefix}-AWSBatchServiceRole-Arn
   ECSTaskExecutionRoleArn:
     Description: ECSTaskExecutionRole Arn
     Value: !GetAtt ECSTaskExecutionRole.Arn
