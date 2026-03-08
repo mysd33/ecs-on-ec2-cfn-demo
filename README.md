@@ -27,7 +27,7 @@
             ![ディレード処理イメージ](img/ecs-delayed.png) 
 
     * 純バッチ処理方式 （メッセージ連携）
-        * ディレード処理方式と同じ仕組みを利用し、スケジュールイベント（EventBridge）により起動したスケジュールバッチ起動用アプリケーションから、SQSを介したメッセージ連携により、バッチアプリケーションのジョブを実行する純バッチ処理にも対応している。 
+        * ディレード処理方式と同じ仕組みを利用し、スケジュールイベント（EventBridge Scheduler）により起動したスケジュールバッチ起動用アプリケーションから、SQSを介したメッセージ連携により、バッチアプリケーションのジョブを実行する純バッチ処理にも対応している。 
         
             ![純バッチ処理イメージ](img/ecs-batch.png) 
 
@@ -35,13 +35,6 @@
         * スケジュールイベント（EventBridge Scheduler）により起動したジョブフロー（StepFunctions）から、AWS Batch上でコマンドライン実行されるバッチアプリケーションのジョブを実行する純バッチ処理にも対応している。
         
             ![純バッチ処理イメージ](img/ecs-batch-jobflow.png)
-
-        * フローのイメージ(Jobflow900)
-
-            ![ジョブフロー900](img/jobflow900.png)            
-
-> [!WARNING]
->   今後、ParallelやMapを使った複雑なフロー制御も実装予定 
 
 * CI/CD
     * CodePipeline、CodeBuild、CodeDeployを使った、CI/CDに対応。
@@ -96,6 +89,26 @@
 * Auroraのリードレプリカ活用
     * オンライン処理方式のAPについてのDBアクセスのソフトウェアフレームワーク機能と連動し、読み取り専用のトランザクション（Springの@TransactionalのreadOnly属性がtrue）の処理では、動的にDB接続を切り替え、Aurora Serverless v2 for Postgresのリーダーエンドポイントに接続するようになっている。
     * これにより、Auroraのリードレプリカを活用することで、拡張性の高い構成を実現している。
+
+* StepFunctionsによるジョブフロー実行制御のイメージ
+    * Jobflow900
+        * シンプルなジョブの順序実行の例
+
+        ![ジョブフロー900](img/jobflow900.png)            
+    
+    * Jobflow910
+        * Parallelを使ったジョブの並列実行の例
+
+        * TBD: 今後作成予定
+    
+    * Jobflow920
+        * Mapを使ったジョブの動的な多重実行の例
+
+        * TBD: 今後作成予定
+
+> [!WARNING]
+>   今後、ParallelやMapを使った複雑なフロー制御も実装予定 
+
 
 ## 事前準備
 ### S3バケットの作成
@@ -466,10 +479,16 @@ TBD
 
     * ステートマシン定義ファイル格納先パスを変えるには、それぞれのcfnスタック作成時のコマンドでパラメータを指定する
         * 「--parameters ParameterKey=StateMachineDefinitionS3Prefix,ParameterValue=(パス)」
-          
+
+* ステートマシンの手動起動
+    * この時点でマネージドコンソールからのステートマシンが可能なので、正常に動作することを確認しておくとよい
 
 ### 5.3. EventBridge Schedulerによるステートマシンのスケジュール起動
-* TBD: 今後作成予定
+
+```sh
+aws cloudformation validate-template --template-body file://cfn-sfn-scheduleevent.yaml
+aws cloudformation create-stack --stack-name SFN-SCHEDULE-Stack --template-body file://cfn-sfn-scheduleevent.yaml
+```
  
 
 ### 6. APの実行確認
@@ -697,6 +716,7 @@ aws cloudformation delete-stack --stack-name Bff-CodeDeploy-Stack
 
 aws cloudformation delete-stack --stack-name ECS-Bastion-Stack
 
+aws cloudformation delete-stack --stack-name SFN-SCHEDULE-Stack
 aws cloudformation delete-stack --stack-name SFN-Stack
 aws cloudformation delete-stack --stack-name AWS-BATCH-Stack
 
