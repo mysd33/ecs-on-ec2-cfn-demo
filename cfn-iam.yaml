@@ -105,6 +105,26 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub ${StackPrefix}-BastionRole        
+ #IAM Role for ECS on EC2 AutoScaling LaunchConfiguration
+  ECSRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Path: /
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role
+  
+  ECSIamInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: /
+      Roles:
+        - !Ref ECSRole          
   #IAM Role for Frontend ECS Task
   FrontendECSTaskRole:
     Type: AWS::IAM::Role
@@ -293,6 +313,20 @@ Resources:
       - !Ref FrontendECSTaskRole
       - !Ref BatchECSTaskRole
       - !Ref ScheduleLaunchECSTaskRole
+  
+  #IAM Policy for Step Functions SendTaskSuccess Callback
+  StepFunctionsAccessPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyDocument:
+        Statement:
+        - Action:
+          - states:SendTaskSuccess
+          Effect: Allow
+          Resource: !Sub arn:${AWS::Partition}:states:${AWS::Region}:${AWS::AccountId}:stateMachine:*
+      PolicyName: !Sub ${StackPrefix}-StepFunctionsTaskPolicy
+      Roles:
+      - !Ref BatchJobflowJobRole      
 
   #IAM Policy for DynamoDB Access
   DynamoDBAccessPolicy:
@@ -423,7 +457,7 @@ Resources:
         - Key: Name
           Value: !Sub ${StackPrefix}-ECSApplicationAutoScalingRole       
 
-  #IAM Role for ECS Scheduled Task
+  #IAM Role for EventBridge Scheduler to trigger ECS Task
   ECSEventRole:
     Type: AWS::IAM::Role
     Properties:
@@ -436,6 +470,50 @@ Resources:
               Service: scheduler.amazonaws.com
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceEventsRole
+
+  #IAM Role for Step Functions State Machine Execution
+  StepFunctionsExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Path: /
+      AssumeRolePolicyDocument: 
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: states.amazonaws.com
+            # https://docs.aws.amazon.com/ja_jp/step-functions/latest/dg/procedure-create-iam-role.html 
+            Condition:
+              ArnLike:
+                aws:SourceArn: !Sub arn:${AWS::Partition}:states:${AWS::Region}:${AWS::AccountId}:stateMachine:*
+              StringEquals:
+                aws:SourceAccount: !Sub ${AWS::AccountId}      
+      Tags:
+        - Key: Name
+          Value: !Sub ${StackPrefix}-StepFunctionsExecutionRole
+
+  #IAM Policy for AWS Batch Job from Step Functions State Machine
+  #https://docs.aws.amazon.com/ja_jp/step-functions/latest/dg/connect-batch.html#batch-iam
+  StepFunctionsBatchJobPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyDocument:
+        Statement:
+        - Action:
+          - batch:SubmitJob
+          - batch:DescribeJobs
+          - batch:TerminateJob
+          Effect: Allow
+          Resource: "*"
+        - Action:
+          - "events:PutTargets"
+          - "events:PutRule"
+          - "events:DescribeRule"
+          Effect: Allow
+          Resource: !Sub "arn:${AWS::Partition}:events:${AWS::Region}:${AWS::AccountId}:rule/StepFunctionsGetEventsForBatchJobsRule"
+      PolicyName: !Sub ${StackPrefix}-StepFunctionsBatchJobPolicy
+      Roles:
+      - !Ref StepFunctionsExecutionRole          
 
   #IAM Role and IAM Policy for CodeBuild
   CodeBuildRole:
@@ -605,6 +683,11 @@ Outputs:
       Value: !Ref BastionInstanceProfile
       Export: 
         Name: !Sub ${StackPrefix}-BastionInstanceProfile
+  ECSIamInstanceProfileID:
+    Description: ECSIamInstanceProfile ID
+    Value: !Ref ECSIamInstanceProfile
+    Export: 
+      Name: !Sub ${StackPrefix}-ECSIamInstanceProfile-ID        
   FrontendECSTaskRoleArn:
     Description: FrontendECSTaskRole Arn
     Value: !GetAtt FrontendECSTaskRole.Arn
@@ -650,6 +733,11 @@ Outputs:
     Value: !GetAtt ECSApplicationAutoScalingRole.Arn
     Export: 
       Name: !Sub ${StackPrefix}-ECSApplicationAutoScalingRole-Arn
+  StepFunctionsExecutionRoleArn:
+    Description: StepFunctionsExecutionRole Arn
+    Value: !GetAtt StepFunctionsExecutionRole.Arn
+    Export: 
+      Name: !Sub ${StackPrefix}-StepFunctionsExecutionRole-Arn
   CodeBuildRoleArn:
     Description: CodeBuildRole Arn
     Value: !GetAtt CodeBuildRole.Arn

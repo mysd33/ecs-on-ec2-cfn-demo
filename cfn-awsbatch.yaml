@@ -260,4 +260,20 @@ Resources:
                 Environment:
                   - Name: TZ
                     Value: Asia/Tokyo
-#Outputs:
+Outputs:
+  BatchJobQueueArn:
+    Description: "ARN of AWS Batch Job Queue"
+    Value: !Ref BatchJobQueue
+    Export:
+      Name: !Sub "${StackPrefix}-JobQueue-Arn"
+  Job901DefinitionArn:
+    Description: "ARN of AWS Batch Job Definition for Job901"
+    Value: !Ref Job901JobDefinition
+    Export:
+      Name: !Sub "${StackPrefix}-Job901Definition-Arn"
+  Job902DefinitionArn:
+    Description: "ARN of AWS Batch Job Definition for Job902" 
+    Value: !Ref Job902JobDefinition
+    Export:
+      Name: !Sub "${StackPrefix}-Job902Definition-Arn"
+  

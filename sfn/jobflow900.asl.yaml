@@ -1,0 +1,46 @@
+StartAt: job901
+States:
+  job901:
+    Type: Task
+    Resource: arn:aws:states:::batch:submitJob.sync
+    Arguments:
+      JobName: job901
+      JobDefinition: ${job901_job_definition_arn}
+      JobQueue: ${job_queue_arn}
+      EcsPropertiesOverride:
+        TaskProperties:
+          - Containers:
+              - Name: job901
+                Command:
+                  - --spring.batch.job.name=job901
+                  - inputData=input901
+                  - "{% 'taskToken=' & $states.context.Task.Token %}"
+    Next: job902
+    Output:
+      Job901Result: "{% $states.result %}"
+    Comment: |2-
+        TODO:
+        Set Job parameter from Event Bridge Scheduler ExecutionID
+        "{% 'executionId=' & $states.input.Input.executionId %}"
+  job902:
+    Type: Task
+    Resource: arn:aws:states:::batch:submitJob.sync
+    Arguments:
+      JobName: job902
+      JobDefinition: ${job902_job_definition_arn}
+      JobQueue: ${job_queue_arn}
+      EcsPropertiesOverride:
+        TaskProperties:      
+          - Containers:
+              - Name: job902
+                Command:
+                  - --spring.batch.job.name=job902
+                  - "{% 'inputData=' & $states.input.Job901Result %}"
+                  - "{% 'taskToken=' & $states.context.Task.Token %}"
+    Comment: |2-
+        TODO:
+        Set Job parameter from Event Bridge Scheduler ExecutionID
+        "{% 'executionId=' & $states.input.Input.executionId %}"
+    End: true
+QueryLanguage: JSONata
+Comment: Simple Jobflow Sample

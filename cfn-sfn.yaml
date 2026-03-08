@@ -1,0 +1,45 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Step Functions Template for CloudFormation Demo. Depends on cfn-awsbatch.yaml.
+
+#Metadata: 
+
+Parameters: 
+  StackPrefix:
+    Description: Stack Resource Name Prefix
+    Type: String
+    Default: Demo
+  StateMachineDefinitionS3BucketName:
+    Description: S3 Bucket Name for Step Functions State Machine Definition
+    Type: String
+    Default: mysd33bucket123
+  StateMachineDefinitionS3Prefix:
+    Description: S3 Prefix for Step Functions State Machine Definition
+    Type: String
+    Default: sfn
+
+#Mappings: 
+
+#Conditions: 
+
+Resources: 
+  Job900Flow:
+    Type: AWS::StepFunctions::StateMachine
+    Properties: 
+      StateMachineName: !Sub ${StackPrefix}-Job900Flow
+      RoleArn: 
+        Fn::ImportValue: !Sub ${StackPrefix}-StepFunctionsExecutionRole-Arn
+      DefinitionS3Location:
+        Bucket: !Ref StateMachineDefinitionS3BucketName
+        Key: !Sub "${StateMachineDefinitionS3Prefix}/jobflow900.asl.yaml"
+      DefinitionSubstitutions:
+        job901_job_definition_arn:
+          Fn::ImportValue:
+            Fn::Sub: ${StackPrefix}-Job901Definition-Arn
+        job902_job_definition_arn:
+          Fn::ImportValue:
+            Fn::Sub: ${StackPrefix}-Job902Definition-Arn
+        job_queue_arn:
+          Fn::ImportValue:
+            Fn::Sub: ${StackPrefix}-JobQueue-Arn
+
+#Outputs:

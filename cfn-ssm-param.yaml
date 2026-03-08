@@ -26,8 +26,25 @@ Parameters:
   PostgresConnectTimeout:
     Description: The timeout value used for socket connect operations. JDBC Driver default value is 10. max value is 2147484. 0 means timeout disabled.
     Type: String
-    Default: "40"
+    Default: "35"
 #    Default: "30"
+  # HikariCP connectionTimeout for Aurora Auto Pause  
+  # https://github.com/brettwooldridge/HikariCP?tab=readme-ov-file#frequently-used
+  HikariCPConnectionTimeout:
+    Description: the maximum number of milliseconds that a client (that's you) will wait for a connection from the pool Default is 30000 (30 seconds). 
+    Type: String
+    Default: "40000"
+#    Default: "30000"
+  # HikariCP initializationFailTimeout for Aurora Auto Pause  
+  # https://github.com/brettwooldridge/HikariCP?tab=readme-ov-file#infrequently-used  
+  HikariCPInitializationFailTimeout: 
+    Description: whether the pool will "fail fast" if the pool cannot be seeded with an initial connection successfully
+    Type: String
+    # If the value is zero (0), HikariCP will attempt to obtain and validate a connection. If a connection is obtained, but fails validation, an exception will be thrown and the pool not started. However, if a connection cannot be obtained, the pool will start, but later efforts to obtain a connection may fail. 
+    Default: 0
+    # Any positive number is taken to be the number of milliseconds to attempt to acquire an initial connection; the application thread will be blocked during this period. 
+    #Default: "30000"
+    
 
 
 Resources:
@@ -121,6 +138,42 @@ Resources:
             - "/"
             - Fn::ImportValue: !Sub ${StackPrefix}-RDSDBName
             - !Sub "?connectTimeout=${PostgresConnectTimeout}"
+  CommonHikariCPConnectionTimeoutParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /config/${ProjectName}/${EnvName}/common/spring.datasource.hikari.connection-timeout
+      Type: String
+      Value: !Ref HikariCPConnectionTimeout
+  CommonHikariCPInitializationFailTimeoutParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /config/${ProjectName}/${EnvName}/common/spring.datasource.hikari.initialization-fail-timeout
+      Type: String
+      Value: !Ref HikariCPInitializationFailTimeout
+  CommonReadDataSourceHikariCPConnectionTimeoutParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /config/${ProjectName}/${EnvName}/common/example.datasource.read.hikari.connection-timeout
+      Type: String
+      Value: !Ref HikariCPConnectionTimeout
+  CommonReadDataSourceHikariCPInitializationFailTimeoutParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /config/${ProjectName}/${EnvName}/common/example.datasource.read.hikari.initialization-fail-timeout
+      Type: String
+      Value: !Ref HikariCPInitializationFailTimeout
+  CommonWriteDataSourceHikariCPConnectionTimeoutParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /config/${ProjectName}/${EnvName}/common/example.datasource.write.hikari.connection-timeout
+      Type: String
+      Value: !Ref HikariCPConnectionTimeout
+  CommonWriteDataSourceHikariCPInitializationFailTimeoutParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /config/${ProjectName}/${EnvName}/common/example.datasource.write.hikari.initialization-fail-timeout
+      Type: String
+      Value: !Ref HikariCPInitializationFailTimeout          
   CommonApiBackendUrlParameter:
     Type: AWS::SSM::Parameter
     Properties:
