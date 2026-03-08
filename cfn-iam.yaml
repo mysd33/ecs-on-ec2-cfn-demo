@@ -515,6 +515,31 @@ Resources:
       Roles:
       - !Ref StepFunctionsExecutionRole          
 
+  #IAM Role for EventBridge Scheduler to trigger Step Functions State Machine
+  SfnEventRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Path: /      
+      AssumeRolePolicyDocument: 
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: scheduler.amazonaws.com
+  #IAM Polocy for EventBridge Scheduler to trigger Step Functions State Machine
+  SfnEventPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyDocument:
+        Statement:
+        - Action:
+          - states:StartExecution
+          Effect: Allow
+          Resource: !Sub arn:${AWS::Partition}:states:${AWS::Region}:${AWS::AccountId}:stateMachine:*
+      PolicyName: !Sub ${StackPrefix}-SfnEventPolicy
+      Roles:
+      - !Ref SfnEventRole
+
   #IAM Role and IAM Policy for CodeBuild
   CodeBuildRole:
     Type: AWS::IAM::Role
@@ -738,6 +763,11 @@ Outputs:
     Value: !GetAtt StepFunctionsExecutionRole.Arn
     Export: 
       Name: !Sub ${StackPrefix}-StepFunctionsExecutionRole-Arn
+  SfnEventRoleArn:
+    Description: SfnEventRole Arn
+    Value: !GetAtt SfnEventRole.Arn
+    Export: 
+      Name: !Sub ${StackPrefix}-SfnEventRole-Arn
   CodeBuildRoleArn:
     Description: CodeBuildRole Arn
     Value: !GetAtt CodeBuildRole.Arn

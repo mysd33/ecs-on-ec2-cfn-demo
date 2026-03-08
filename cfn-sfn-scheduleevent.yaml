@@ -1,0 +1,37 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: EventBridge Scheduler triggered Step Function Template for CloudFormation Demo. Depends on cfn-iam.yaml cfn-sfn-state-machine.yaml
+#Metadata: 
+
+Parameters: 
+  StackPrefix:
+    Description: Stack Resource Name Prefix
+    Type: String
+    Default: Demo
+  ScheduleExpression:
+    Type: String
+    Default: rate(1 minute)
+    #Default: cron(0/1 * * * ? *)
+
+#Mappings: 
+
+#Conditions: 
+
+Resources: 
+  #Jobflow900
+  Jobflow900Schedule:
+    Type: AWS::Scheduler::Schedule
+    Properties:
+      ScheduleExpression: !Ref ScheduleExpression
+      FlexibleTimeWindow:
+        Mode: FLEXIBLE
+        MaximumWindowInMinutes: 1
+      Target:
+        Arn: 
+          Fn::ImportValue: !Sub ${StackPrefix}-Job900Flow-Arn
+        RoleArn: 
+          Fn::ImportValue: !Sub ${StackPrefix}-SfnEventRole-Arn
+        Input:  |
+          {
+            "ExecutionId": "<aws.scheduler.execution-id>"
+          }
+#Outputs:

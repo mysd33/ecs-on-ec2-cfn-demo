@@ -14,14 +14,14 @@ States:
                 Command:
                   - --spring.batch.job.name=job901
                   - inputData=input901
-                  - "{% 'taskToken=' & $states.context.Task.Token %}"
+                  - "{% 'executionId=' & $states.input.ExecutionId %}"
+                Environment:
+                  - Name: TASK_TOKEN
+                    Value: "{% $states.context.Task.Token %}"
     Next: job902
     Output:
       Job901Result: "{% $states.result %}"
-    Comment: |2-
-        TODO:
-        Set Job parameter from Event Bridge Scheduler ExecutionID
-        "{% 'executionId=' & $states.input.Input.executionId %}"
+      ExecutionId: "{% $states.input.ExecutionId %}"
   job902:
     Type: Task
     Resource: arn:aws:states:::batch:submitJob.sync
@@ -36,11 +36,10 @@ States:
                 Command:
                   - --spring.batch.job.name=job902
                   - "{% 'inputData=' & $states.input.Job901Result %}"
-                  - "{% 'taskToken=' & $states.context.Task.Token %}"
-    Comment: |2-
-        TODO:
-        Set Job parameter from Event Bridge Scheduler ExecutionID
-        "{% 'executionId=' & $states.input.Input.executionId %}"
+                  - "{% 'executionId=' & $states.input.ExecutionId %}"
+                Environment:
+                  - Name: TASK_TOKEN
+                    Value: "{% $states.context.Task.Token %}"        
     End: true
 QueryLanguage: JSONata
 Comment: Simple Jobflow Sample

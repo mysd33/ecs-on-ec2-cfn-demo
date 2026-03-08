@@ -42,4 +42,9 @@ Resources:
           Fn::ImportValue:
             Fn::Sub: ${StackPrefix}-JobQueue-Arn
 
-#Outputs:
+Outputs:
+  Job900FlowArn:
+    Description: Step Functions State Machine Arn
+    Value: !Ref Job900Flow
+    Export:
+      Name: !Sub ${StackPrefix}-Job900Flow-Arn
