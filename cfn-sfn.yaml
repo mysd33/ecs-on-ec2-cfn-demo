@@ -34,10 +34,10 @@ Resources:
       DefinitionSubstitutions:
         job901_job_definition_arn:
           Fn::ImportValue:
-            Fn::Sub: ${StackPrefix}-Job901Definition-Arn
+            Fn::Sub: ${StackPrefix}-BatchJobDefinition-Arn
         job902_job_definition_arn:
           Fn::ImportValue:
-            Fn::Sub: ${StackPrefix}-Job902Definition-Arn
+            Fn::Sub: ${StackPrefix}-BatchJobDefinition-Arn
         job_queue_arn:
           Fn::ImportValue:
             Fn::Sub: ${StackPrefix}-JobQueue-Arn

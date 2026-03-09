@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: AWS Batch Job Definition Template for CloudFormation Demo. Depends on cfn-iam.yaml, cfn-ecr.yaml, cfn-rds-aurora.yaml, cfn-ssm-param.yaml
+Description: AWS Batch Job Definition Template for CloudFormation Demo. Depends on cfn-iam.yaml, cfn-ecr.yaml, cfn-ssm-param.yaml
 #Metadata: 
 
 Parameters: 
@@ -17,11 +17,15 @@ Parameters:
     AllowedValues: ["Dev", "Staging", "Production"]
     Default: Production
     ConstraintDescription: must be a prod or test
+  ContainerImageTag:
+    Description: Container Image Tag for Batch Job. ECR Repository is created in cfn-ecr.yaml.
+    Type: String
+    Default: latest
 
 Mappings: 
   BatchAppJobDefinitionMap:
     Production:
-      "ContainerImage" : "sample-batch-jobflow:latest"
+      "ContainerImage" : "sample-batch-jobflow"
       "Vcpus" : 1
       "Memory" : 2048
       "AdotVcpus" : 1
@@ -29,7 +33,7 @@ Mappings:
       "MaxVcpus" : 4
       "Profile" : "production,log_container"
     Staging:
-      "ContainerImage" : "sample-batch:latest"
+      "ContainerImage" : "sample-batch-jobflow"
       "Vcpus" : 1
       "Memory" : 2048
       "AdotVcpus" : 1
@@ -37,7 +41,7 @@ Mappings:
       "MaxVcpus" : 4
       "Profile" : "production,log_container"
     Dev:      
-      "ContainerImage" : "sample-batch-jobflow:latest"
+      "ContainerImage" : "sample-batch-jobflow"
       "Vcpus" : 1
       "Memory" : 2048
       "AdotVcpus" : 1
@@ -87,15 +91,14 @@ Resources:
           ComputeEnvironment: !Ref BatchComputeEnvironment
       Tags: {"Name": !Sub "${StackPrefix}-BatchJobQueue"}
 
-  # JobDefinition  
-  # Job901
-  Job901JobDefinition:
+  # JobDefinition    
+  BatchJobDefinition:
     Type: AWS::Batch::JobDefinition
     Properties:
-      JobDefinitionName: !Sub "${StackPrefix}-Job901-Definition"
+      JobDefinitionName: !Sub "${StackPrefix}-BatchJob-Definition"
       Type: container
       PlatformCapabilities:         
-        - EC2        
+        - FARGATE        
       EcsProperties:  
         TaskProperties:
           - ExecutionRoleArn:
@@ -104,14 +107,17 @@ Resources:
               Fn::ImportValue: !Sub ${StackPrefix}-BatchJobflowJobRole-Arn
             Volumes:
               - Name: tmp                 
-            Containers:
-              - Name: job901
-                Command: ["--spring.batch.job.name=job901", "inputData=input901", "taskToken=dummy"]
+            Containers:              
+              - Name: batch-jobflow
+                # Command is overridden at runtime, by step function state machinde definition
+                Command: ["--spring.batch.job.name=job901", "inputData=input901"]
                 Image:
                   Fn::Join:
                       - ""
                       - - !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/
                         - !FindInMap [BatchAppJobDefinitionMap, !Ref EnvironmentType, ContainerImage]
+                        - ":"
+                        - !Ref ContainerImageTag
                 ResourceRequirements:
                   - Type: VCPU
                     Value: !FindInMap [BatchAppJobDefinitionMap, !Ref EnvironmentType, Vcpus]
@@ -142,7 +148,7 @@ Resources:
                   # ADOT Environment Variables
                   # TODO: parameterize service name and namespace            
                   - Name: OTEL_RESOURCE_ATTRIBUTES
-                    Value: service.name=sample-backend-jobflow,service.namespace=demo
+                    Value: service.name=sample-batch-jobflow,service.namespace=demo
                   - Name: OTEL_LOGS_EXPORTER
                     Value: none
                   - Name: OTEL_METRICS_EXPORTER
@@ -173,107 +179,18 @@ Resources:
                 Environment:
                   - Name: TZ
                     Value: Asia/Tokyo
-      Tags: {"Name": !Sub "${StackPrefix}-Job901-Definition"}    
+      Tags: {"Name": !Sub "${StackPrefix}-BatchJob-Definition"}    
     
-  #job902
-  Job902JobDefinition:
-    Type: AWS::Batch::JobDefinition
-    Properties:
-      JobDefinitionName: !Sub "${StackPrefix}-Job902-Definition"
-      Type: container
-      PlatformCapabilities:         
-        - EC2
-      EcsProperties:  
-        TaskProperties:
-          - ExecutionRoleArn:
-              Fn::ImportValue: !Sub ${StackPrefix}-ECSTaskExecutionRole-Arn
-            TaskRoleArn: 
-              Fn::ImportValue: !Sub ${StackPrefix}-BatchJobflowJobRole-Arn
-            Volumes:
-              - Name: tmp                 
-            Containers:
-              - Name: job902
-                Command: ["--spring.batch.job.name=job902", "inputData='{\"result\":\"result_job901\"}'", "taskToken=dummy"]
-                Image:
-                  Fn::Join:
-                      - ""
-                      - - !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/
-                        - !FindInMap [BatchAppJobDefinitionMap, !Ref EnvironmentType, ContainerImage]
-                ResourceRequirements:
-                  - Type: VCPU
-                    Value: !FindInMap [BatchAppJobDefinitionMap, !Ref EnvironmentType, Vcpus]
-                  - Type: MEMORY
-                    Value: !FindInMap [BatchAppJobDefinitionMap, !Ref EnvironmentType, Memory]
-                ReadonlyRootFilesystem: true
-                MountPoints:
-                  - SourceVolume: tmp                
-                    ContainerPath: /tmp
-                Environment:
-                  - Name: ENVIRONMENT_TYPE
-                    Value: !Ref EnvironmentType
-                  - Name: TZ
-                    Value: Asia/Tokyo          
-                  - Name: SPRING_PROFILES_ACTIVE
-                    Value: !FindInMap [BatchAppJobDefinitionMap, !Ref EnvironmentType, Profile]
-                  - Name: PROJECT_NAME
-                    Value: !Ref ProjectName
-                  - Name: ENV_NAME
-                    Value: !Ref EnvironmentType              
-                  - Name: LOGGING_LEVEL_IO_AWSPRING_CLOUD_PARAMETERSTORE
-                    Value: DEBUG
-                  - Name: DB_SECRETS_NAME
-                    Value:
-                      Fn::ImportValue: !Sub ${StackPrefix}-RDSSecretsManagerName              
-                  - Name: LOGGING_LEVEL_IO_AWSPRING_CLOUD_SECRETSMANAGER
-                    Value: DEBUG
-                  # ADOT Environment Variables
-                  # TODO: parameterize service name and namespace            
-                  - Name: OTEL_RESOURCE_ATTRIBUTES
-                    Value: service.name=sample-backend-jobflow,service.namespace=demo
-                  - Name: OTEL_LOGS_EXPORTER
-                    Value: none
-                  - Name: OTEL_METRICS_EXPORTER
-                    Value: none              
-                LogConfiguration:
-                  LogDriver: awslogs
-                  Options:
-                    awslogs-group: !Ref BatchJobflowAppLogGroup
-                    awslogs-region: !Ref AWS::Region
-                    awslogs-stream-prefix: "batch"
-              - Name: aws-collector
-                Image:
-                  Fn::ImportValue: !Sub ${StackPrefix}-AdotCollectorECRRepositoryUri
-                ResourceRequirements:
-                  - Type: VCPU
-                    Value: !FindInMap [BatchAppJobDefinitionMap, !Ref EnvironmentType, AdotVcpus]                  
-                  - Type: MEMORY
-                    Value: !FindInMap [BatchAppJobDefinitionMap, !Ref EnvironmentType, AdotMemory]                    
-                Command:
-                  - "--config=/etc/ecs/ecs-xray.yaml"
-                LogConfiguration:
-                  LogDriver: awslogs
-                  Options:
-                    awslogs-create-group: true
-                    awslogs-group: /ecs/ecs-aws-otel-sidecar-collector-bj
-                    awslogs-region: !Ref "AWS::Region"
-                    awslogs-stream-prefix: ecs      
-                Environment:
-                  - Name: TZ
-                    Value: Asia/Tokyo
 Outputs:
   BatchJobQueueArn:
     Description: "ARN of AWS Batch Job Queue"
     Value: !Ref BatchJobQueue
     Export:
       Name: !Sub "${StackPrefix}-JobQueue-Arn"
-  Job901DefinitionArn:
-    Description: "ARN of AWS Batch Job Definition for Job901"
-    Value: !Ref Job901JobDefinition
+  BatchJobDefinitionArn:
+    Description: "ARN of AWS Batch Job Definition for BatchJob"
+    Value: !Ref BatchJobDefinition
     Export:
-      Name: !Sub "${StackPrefix}-Job901Definition-Arn"
-  Job902DefinitionArn:
-    Description: "ARN of AWS Batch Job Definition for Job902" 
-    Value: !Ref Job902JobDefinition
-    Export:
-      Name: !Sub "${StackPrefix}-Job902Definition-Arn"
+      Name: !Sub "${StackPrefix}-BatchJobDefinition-Arn"
+
   

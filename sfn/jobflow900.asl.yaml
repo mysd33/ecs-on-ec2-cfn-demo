@@ -10,7 +10,7 @@ States:
       EcsPropertiesOverride:
         TaskProperties:
           - Containers:
-              - Name: job901
+              - Name: batch-jobflow
                 Command:
                   - --spring.batch.job.name=job901
                   - inputData=input901
@@ -32,7 +32,7 @@ States:
       EcsPropertiesOverride:
         TaskProperties:      
           - Containers:
-              - Name: job902
+              - Name: batch-jobflow
                 Command:
                   - --spring.batch.job.name=job902
                   - "{% 'inputData=' & $states.input.Job901Result %}"
