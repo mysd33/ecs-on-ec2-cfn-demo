@@ -1,4 +1,4 @@
-<mxfile host="Electron" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/29.5.2 Chrome/142.0.7444.265 Electron/39.6.1 Safari/537.36" version="29.5.2" pages="4">
+<mxfile host="Electron" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/29.6.1 Chrome/142.0.7444.265 Electron/39.8.0 Safari/537.36" version="29.6.1" pages="4">
   <diagram id="Upnnu3l6EXuGTqg0k_t_" name="オンライン">
     <mxGraphModel dx="1410" dy="825" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
       <root>
@@ -223,7 +223,7 @@
     </mxGraphModel>
   </diagram>
   <diagram name="純バッチ（StepFunctions）" id="haUh4NBI_epLsEceqrPn">
-    <mxGraphModel dx="1410" dy="825" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+    <mxGraphModel dx="1426" dy="841" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
       <root>
         <mxCell id="YcEMBqIBt437FC980SXz-0" />
         <mxCell id="YcEMBqIBt437FC980SXz-1" parent="YcEMBqIBt437FC980SXz-0" />
@@ -261,7 +261,7 @@
         <mxCell id="mTPDq1CpmQqTz5Yj1Gob-7" parent="mTPDq1CpmQqTz5Yj1Gob-2" style="rounded=1;whiteSpace=wrap;html=1;" value="ジョブ1" vertex="1">
           <mxGeometry height="47" width="80" x="50" y="123" as="geometry" />
         </mxCell>
-        <mxCell id="mTPDq1CpmQqTz5Yj1Gob-8" parent="mTPDq1CpmQqTz5Yj1Gob-2" style="rounded=1;whiteSpace=wrap;html=1;" value="ジョブ1" vertex="1">
+        <mxCell id="mTPDq1CpmQqTz5Yj1Gob-8" parent="mTPDq1CpmQqTz5Yj1Gob-2" style="rounded=1;whiteSpace=wrap;html=1;" value="ジョブ2" vertex="1">
           <mxGeometry height="47" width="80" x="50" y="240" as="geometry" />
         </mxCell>
         <mxCell id="mTPDq1CpmQqTz5Yj1Gob-9" edge="1" parent="YcEMBqIBt437FC980SXz-1" source="mTPDq1CpmQqTz5Yj1Gob-7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" target="mTPDq1CpmQqTz5Yj1Gob-12" value="&lt;div&gt;コンテナ起動&amp;amp;&lt;/div&gt;javaコマンドで&lt;div&gt;ジョブ1実行&lt;/div&gt;">
@@ -285,7 +285,7 @@
         <mxCell id="mTPDq1CpmQqTz5Yj1Gob-12" parent="YcEMBqIBt437FC980SXz-1" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#ED7100;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.batch;" value="&lt;div&gt;ジョブ1&lt;/div&gt;(AWS Batch)" vertex="1">
           <mxGeometry height="45" width="45" x="670" y="375" as="geometry" />
         </mxCell>
-        <mxCell id="mTPDq1CpmQqTz5Yj1Gob-13" parent="YcEMBqIBt437FC980SXz-1" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#ED7100;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.batch;" value="&lt;div&gt;ジョブ1&lt;/div&gt;(AWS Batch)" vertex="1">
+        <mxCell id="mTPDq1CpmQqTz5Yj1Gob-13" parent="YcEMBqIBt437FC980SXz-1" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#ED7100;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.batch;" value="&lt;div&gt;ジョブ2&lt;/div&gt;(AWS Batch)" vertex="1">
           <mxGeometry height="45" width="45" x="670" y="493" as="geometry" />
         </mxCell>
       </root>
