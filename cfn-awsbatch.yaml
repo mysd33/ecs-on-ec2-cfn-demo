@@ -57,7 +57,7 @@ Resources:
   BatchJobflowAppLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Sub "/aws/batch/job/${StackPrefix}-BatchJobflowApp-Definition"
+      LogGroupName: !Sub "/aws/batch/job/${StackPrefix}-batch-jobflow-group"
       RetentionInDays: 7
 
   # Comupute Environment
