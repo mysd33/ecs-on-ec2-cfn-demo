@@ -1,5 +1,10 @@
 # SpringBoot APをECS on EC2で動作させCode系でCI/CDするCloudFormationサンプルテンプレート
 
+> [!WARNING]
+> 
+> X-Ray SDKおよびX-Rayデーモンは、2026年2月25日よりメンテナンスモードに入り、2027年2月25日にサポート終了となるため、本サンプルコードもメンテナンス終了する。
+> このため、AWS Distro for OpenTelemetry（ADOT）を使用した分散トレーシングのサンプルコードに修正予定。
+
 ## 構成
 * システム構成図
     * RDB(Aurora Serverless v2 for Postgres)のみ版
